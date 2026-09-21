@@ -2,6 +2,8 @@ package com.hashbreaker;
 
 import org.junit.jupiter.api.Test;
 
+import java.security.NoSuchAlgorithmException;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -106,5 +108,28 @@ class Seance2LocaliteMemoireTest {
         long checksumListe = Seance2LocaliteMemoire.parcourirListe(liste);
 
         assertEquals(checksumTableau, checksumListe);
+    }
+
+    // ---- Partie 3 : hacherTableau() / hacherListe() ----
+
+    @Test
+    void hacherTableau_sommeLePremierCaractereDeChaqueHash() throws NoSuchAlgorithmException {
+        // "aa" -> sha256 commence par '9' (57), "ab" -> sha256 commence par 'f' (102)
+        char[] buffer = Seance2LocaliteMemoire.genererTableauContigu(2, 2);
+        assertEquals(57 + 102, Seance2LocaliteMemoire.hacherTableau(buffer, 2, 2));
+    }
+
+    @Test
+    void hacherTableauEtHacherListe_donnentLeMemeResultat() throws NoSuchAlgorithmException {
+        int nombreCandidats = 30;
+        int longueur = 4;
+
+        char[] tableau = Seance2LocaliteMemoire.genererTableauContigu(nombreCandidats, longueur);
+        Seance2LocaliteMemoire.Node liste = Seance2LocaliteMemoire.genererListeDispersee(nombreCandidats, longueur);
+
+        long resultatTableau = Seance2LocaliteMemoire.hacherTableau(tableau, nombreCandidats, longueur);
+        long resultatListe = Seance2LocaliteMemoire.hacherListe(liste);
+
+        assertEquals(resultatTableau, resultatListe);
     }
 }

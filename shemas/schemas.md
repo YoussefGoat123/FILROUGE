@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (Séance 1 + Séance 2 Parties 1-2)
+# Schémas — État actuel du projet (Séance 1 + Séance 2 Parties 1-3)
 
 Diagrammes Mermaid de ce qui a été produit jusqu'ici : structure du projet, code de `Main.java` et `Seance2LocaliteMemoire.java`, flux d'exécution et couverture des tests.
 
@@ -114,8 +114,10 @@ classDiagram
         +genererTableauContigu(nombreCandidats: int, longueur: int) char[]$
         +extraireCandidat(buffer: char[], index: int, longueur: int) String$
         +parcourirTableau(buffer: char[], nombreCandidats: int, longueur: int) long$
+        +hacherTableau(buffer: char[], nombreCandidats: int, longueur: int) long$
         +genererListeDispersee(nombreCandidats: int, longueur: int) Node$
         +parcourirListe(tete: Node) long$
+        +hacherListe(tete: Node) long$
     }
     class Node {
         +String candidat
@@ -214,7 +216,40 @@ flowchart LR
 
 ---
 
-## 7. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java`)
+## 7. Séance 2 — Partie 3 : Observation du goulot mémoire (résultat contre-intuitif)
+
+`hacherTableau()` / `hacherListe()` reprennent exactement les mêmes parcours, mais calculent en plus le **vrai SHA-256** de chaque candidat (`Main.sha256()`, non modifié).
+
+```mermaid
+xychart-beta
+    title "Débit de hachage (candidats/s) — Structure A vs Structure B"
+    x-axis ["Essai 1", "Essai 2", "Essai 3"]
+    y-axis "Candidats / seconde" 0 --> 1300000
+    bar [1095792, 1146980, 1152936]
+    bar [1077823, 1136985, 1162127]
+```
+
+*(première série = tableau contigu, deuxième série = liste chaînée — les deux courbes sont quasiment superposées)*
+
+**Résultat inattendu : aucune différence significative** (~1-2%, dans le bruit de mesure), alors que la Partie 2 montrait un facteur x8-x10 sur le parcours seul.
+
+```mermaid
+flowchart TD
+    Obs["Observation : le facteur x8-x10 de la Partie 2\nDISPARAIT une fois le hachage ajouté"] --> Cause["Cause : sha256() naif prend ~870-900 ns/candidat\nvs ~8-10 ns d'ecart memoire entre les 2 structures"]
+    Cause --> Amdahl["Loi d'Amdahl (cours J1_AM) :\nun poste qui pese <1% du temps total\nne peut pas produire de gain visible si on l'optimise"]
+    Amdahl --> Conclusion["Conclusion : le calcul CPU (hachage naif)\nest ICI le goulot dominant, pas la memoire"]
+
+    style Obs fill:#f9a825,color:#000
+    style Cause fill:#e65100,color:#fff
+    style Amdahl fill:#2d6cdf,color:#fff
+    style Conclusion fill:#2e7d32,color:#fff
+```
+
+> Ce résultat n'est pas un échec de l'expérience — c'est une **application directe de la loi d'Amdahl** vue en J1_AM : la portion "accès mémoire" pèse ici moins de 1% du temps total par candidat (dominé par la conversion hexadécimale naïve de `sha256()`), donc l'optimiser ne peut produire aucun gain visible sur le débit global, quel que soit le facteur d'accélération obtenu sur cette portion isolée. **Prédiction pour la Séance 3** : une fois le hachage naïf remplacé par une version zéro-allocation, le poids relatif de l'accès mémoire va remonter, et l'écart entre les deux structures devrait redevenir visible sur le débit de hachage. Détails : [process/06-seance2-partie3-observation-goulot-memoire.md](../process/06-seance2-partie3-observation-goulot-memoire.md).
+
+---
+
+## 8. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java`)
 
 ```mermaid
 graph LR
@@ -247,14 +282,16 @@ graph LR
         T20["les deux structures contiennent\nles mêmes candidats, même ordre"]
         T21["checksum du tableau : valeur exacte"]
         T22["checksum tableau == checksum liste"]
+        T23["hash du tableau : valeur exacte"]
+        T24["hachage tableau == hachage liste"]
     end
 ```
 
-**Résultat actuel : 22/22 tests passent.**
+**Résultat actuel : 24/24 tests passent.**
 
 ---
 
-## 8. Baseline mesurée — z3D vs Sh3n
+## 9. Baseline mesurée — z3D vs Sh3n
 
 ```mermaid
 xychart-beta
@@ -268,7 +305,7 @@ L'espace de recherche est ~62x plus grand pour `Sh3n` (un caractère de plus) et
 
 ---
 
-## 9. Où on en est dans le TP
+## 10. Où on en est dans le TP
 
 ```mermaid
 flowchart LR
@@ -276,14 +313,16 @@ flowchart LR
     B --> C["✅ Résolution z3D + Sh3n\n(baseline: 249 ms / 10 536 ms)"]
     C --> D["✅ Séance 2 Partie 1\nStockage contigu vs dispersé"]
     D --> E["✅ Séance 2 Partie 2\nParcours linéaire vs aléatoire\n(~1-2 ms vs ~10-12 ms)"]
-    E --> F["⬜ Séance 2 Partie 3-4\nObservation + validation\nsympathie matérielle (débit de hachage)"]
-    F --> G["⬜ Séances suivantes :\nzéro-allocation, profiling,\nworkers, gRPC, SQL"]
+    E --> F["✅ Séance 2 Partie 3\nGoulot mémoire\n(masqué par le hachage naïf — cf. Amdahl)"]
+    F --> G["⬜ Séance 2 Partie 4\nValidation sympathie matérielle"]
+    G --> H["⬜ Séances suivantes :\nzéro-allocation, profiling,\nworkers, gRPC, SQL"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
     style C fill:#2e7d32,color:#fff
     style D fill:#2e7d32,color:#fff
     style E fill:#2e7d32,color:#fff
-    style F fill:#f9a825,color:#000
-    style G fill:#9e9e9e,color:#fff
+    style F fill:#2e7d32,color:#fff
+    style G fill:#f9a825,color:#000
+    style H fill:#9e9e9e,color:#fff
 ```

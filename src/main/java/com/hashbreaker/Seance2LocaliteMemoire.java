@@ -1,5 +1,7 @@
 package com.hashbreaker;
 
+import java.security.NoSuchAlgorithmException;
+
 /**
  * Seance 2 - Localite Spatiale & Lignes de Cache.
  *
@@ -10,11 +12,14 @@ package com.hashbreaker;
  * Partie 2 : parcourir chacune des deux structures et chronometrer le temps d'acces,
  * pour observer l'effet de la localite spatiale (lecture sequentielle vs pointer-chasing).
  *
+ * Partie 3 : refaire le meme parcours mais en hachant chaque candidat (SHA-256),
+ * pour observer le debit de calcul (hachages/seconde) sous charge CPU reelle.
+ *
  * Reutilise le compteur base-N et l'alphabet de Main (Seance 1).
  */
 public class Seance2LocaliteMemoire {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws NoSuchAlgorithmException {
         int nombreCandidats = 1_000_000;
         int longueur = 4;
 
@@ -64,6 +69,42 @@ public class Seance2LocaliteMemoire {
             long fin = System.nanoTime();
             System.out.println("  Essai " + rep + " : " + (fin - debut) / 1_000_000 + " ms (checksum=" + checksum + ")");
         }
+
+        // ---- Partie 3 : goulot memoire (hachage SHA-256 de chaque candidat) ----
+        System.out.println();
+        System.out.println("=== Partie 3 : hachage complet, observation du debit de calcul ===");
+
+        // echauffement (non chronometre)
+        hacherTableau(tableauContigu, nombreCandidats, longueur);
+        hacherListe(listeDispersee);
+
+        int nombreRepetitionsHachage = 3;
+
+        System.out.println();
+        System.out.println("-- Structure A : tableau contigu (hachage) --");
+        for (int rep = 1; rep <= nombreRepetitionsHachage; rep++) {
+            long debut = System.nanoTime();
+            hacherTableau(tableauContigu, nombreCandidats, longueur);
+            long fin = System.nanoTime();
+            afficherDebit(rep, debut, fin, nombreCandidats);
+        }
+
+        System.out.println();
+        System.out.println("-- Structure B : liste chainee (hachage) --");
+        for (int rep = 1; rep <= nombreRepetitionsHachage; rep++) {
+            long debut = System.nanoTime();
+            hacherListe(listeDispersee);
+            long fin = System.nanoTime();
+            afficherDebit(rep, debut, fin, nombreCandidats);
+        }
+    }
+
+    // affiche le temps ecoule et le debit (candidats/seconde) d'un essai de hachage
+    static void afficherDebit(int rep, long debutNs, long finNs, int nombreCandidats) {
+        long dureeMs = (finNs - debutNs) / 1_000_000;
+        double dureeSec = (finNs - debutNs) / 1_000_000_000.0;
+        long debit = (long) (nombreCandidats / dureeSec);
+        System.out.println("  Essai " + rep + " : " + dureeMs + " ms  (" + debit + " candidats/s)");
     }
 
     // ---- Structure A : tableau contigu ----
@@ -94,6 +135,17 @@ public class Seance2LocaliteMemoire {
         long somme = 0;
         for (int i = 0; i < nombreCandidats * longueur; i++) {
             somme += buffer[i];
+        }
+        return somme;
+    }
+
+    // relit chaque candidat du tableau contigu et calcule son SHA-256 (vraie charge CPU)
+    static long hacherTableau(char[] buffer, int nombreCandidats, int longueur) throws NoSuchAlgorithmException {
+        long somme = 0;
+        for (int i = 0; i < nombreCandidats; i++) {
+            String candidat = extraireCandidat(buffer, i, longueur);
+            String hash = Main.sha256(candidat);
+            somme += hash.charAt(0); // empeche le JIT de supprimer l'appel comme code mort
         }
         return somme;
     }
@@ -137,6 +189,18 @@ public class Seance2LocaliteMemoire {
             for (int i = 0; i < courant.candidat.length(); i++) {
                 somme += courant.candidat.charAt(i);
             }
+            courant = courant.suivant;
+        }
+        return somme;
+    }
+
+    // suit la liste chainee et calcule le SHA-256 de chaque candidat (vraie charge CPU)
+    static long hacherListe(Node tete) throws NoSuchAlgorithmException {
+        long somme = 0;
+        Node courant = tete;
+        while (courant != null) {
+            String hash = Main.sha256(courant.candidat);
+            somme += hash.charAt(0);
             courant = courant.suivant;
         }
         return somme;
