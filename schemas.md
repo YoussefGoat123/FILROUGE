@@ -51,16 +51,22 @@ classDiagram
 
 ## 3. Flux d'exécution de `main()`
 
+`main()` appelle maintenant `craquer(nomCible, hashCible, longueur)` une fois par cible, à la suite.
+
 ```mermaid
 flowchart TD
-    Init(["Initialisation :<br/>hashCible, longueur = 3<br/>buffer = [0,0,0]"]) --> Boucle{"trouve == false ?"}
+    MainStart(["main()"]) --> Craquer1["craquer('z3D', hash, 3)"]
+    Craquer1 --> Craquer2["craquer('Sh3n', hash, 4)"]
+
+    subgraph "craquer(nomCible, hashCible, longueur)"
+    Init(["buffer = [0,0,...,0]"]) --> Boucle{"trouve == false ?"}
     Boucle -- "oui" --> Construire["construireCandidat(buffer)<br/>→ ex: 'aaa'"]
     Construire --> Hash["sha256(candidat)<br/>→ hash hexadécimal"]
     Hash --> Compare{"hash == hashCible ?"}
     Compare -- "non" --> Increment["incrementer(buffer)<br/>(retenue droite → gauche)"]
     Increment --> Boucle
-    Compare -- "oui" --> Fin(["trouve = true<br/>Afficher candidat + temps écoulé"])
-    Boucle -- "non" --> Fin
+    Compare -- "oui" --> Fin(["Afficher candidat + temps écoulé"])
+    end
 ```
 
 ---
@@ -118,18 +124,32 @@ graph LR
 
 ---
 
-## 6. Où on en est dans le TP
+## 6. Baseline mesurée — z3D vs Sh3n
+
+```mermaid
+xychart-beta
+    title "Temps de résolution (version naïve)"
+    x-axis ["z3D (238 328 candidats)", "Sh3n (14 776 336 candidats)"]
+    y-axis "Temps (ms)" 0 --> 11000
+    bar [249, 10536]
+```
+
+L'espace de recherche est ~62x plus grand pour `Sh3n` (un caractère de plus) et le temps suit à peu près la même échelle : c'est cohérent avec un algorithme en **O(62^longueur)**, qui teste les candidats un par un sans aucune astuce. C'est exactement cette explosion combinatoire que les prochaines séances vont attaquer (parallélisme, élagage, etc. — pas en changeant l'algo de force brute lui-même mais en réduisant le coût de chaque tentative et en répartissant le travail).
+
+---
+
+## 7. Où on en est dans le TP
 
 ```mermaid
 flowchart LR
     A["✅ Init projet Java\n(pom.xml, JDK 21)"] --> B["✅ Algo naïf\n(compteur base-N + SHA-256)"]
-    B --> C["✅ Résolution z3D\n(550 ms)"]
-    C --> D["⬜ Résolution Sh3n\n(baseline chronométrée)"]
+    B --> C["✅ Résolution z3D\n(249 ms)"]
+    C --> D["✅ Résolution Sh3n\n(10 536 ms = baseline)"]
     D --> E["⬜ Séances suivantes :\nalignement mémoire,\nzéro-allocation, profiling,\nworkers, gRPC, SQL"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
     style C fill:#2e7d32,color:#fff
-    style D fill:#f9a825,color:#000
+    style D fill:#2e7d32,color:#fff
     style E fill:#9e9e9e,color:#fff
 ```

@@ -5,7 +5,7 @@ import java.security.NoSuchAlgorithmException;
 
 /**
  * Point d'entrée du craqueur HashBreaker.
- * Séance 1 : générateur combinatoire (compteur base-N) + SHA-256, résolution de la cible z3D.
+ * Séance 1 : générateur combinatoire (compteur base-N) + SHA-256, résolution des cibles z3D et Sh3n.
  *
  * Version NAIVE volontairement : on recrée des String à chaque essai.
  * Ce sera optimisé dans les prochaines séances (zéro-allocation, etc.).
@@ -16,13 +16,20 @@ public class Main {
 
     public static void main(String[] args) throws NoSuchAlgorithmException {
 
-        // hash SHA-256 réel de "z3D"
-        String hashCible = "a532ca5e11e2b06ccc911e0d962a4864cdb87da05723f3a050a376d0f0895e63";
-        int longueur = 3;
+        // Niveau 1 - Validation
+        craquer("z3D", "a532ca5e11e2b06ccc911e0d962a4864cdb87da05723f3a050a376d0f0895e63", 3);
+
+        // Niveau 2 - Benchmark (baseline chronometree)
+        craquer("Sh3n", "bd7d0ea8cf7ade4a446ba4efc46fd99071ec3f423770991ac51f70ec5a894dc7", 4);
+    }
+
+    // tente de retrouver le mot de passe correspondant a hashCible par force brute
+    static void craquer(String nomCible, String hashCible, int longueur) throws NoSuchAlgorithmException {
+        System.out.println("Recherche de la cible : " + nomCible);
 
         long debut = System.currentTimeMillis();
 
-        // buffer d'indices dans l'alphabet, commence à [0,0,0] = "aaa"
+        // buffer d'indices dans l'alphabet, commence a [0,0,...,0] = "aaa..."
         int[] buffer = new int[longueur];
 
         boolean trouve = false;
@@ -46,6 +53,8 @@ public class Main {
                 incrementer(buffer);
             }
         }
+
+        System.out.println();
     }
 
     // construit le mot candidat en piochant chaque caractere dans l'alphabet
