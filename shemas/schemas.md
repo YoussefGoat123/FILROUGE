@@ -1,8 +1,8 @@
-# Schémas — État actuel du projet (Séance 1 + Séance 2 Parties 1-3)
+# Schémas — État actuel du projet (Séance 1 + Séance 2 complète)
 
 Diagrammes Mermaid de ce qui a été produit jusqu'ici : structure du projet, code de `Main.java` et `Seance2LocaliteMemoire.java`, flux d'exécution et couverture des tests.
 
-> Journal détaillé étape par étape : voir [process/](../process/README.md).
+> Journal détaillé étape par étape : voir [process/](../process/README.md). Synthèses "ce qu'il faut retenir" par séance : voir [syntheses/](../syntheses/README.md).
 
 > Pour voir les diagrammes : ouvre ce fichier dans VSCode et fais `Ctrl+Shift+V` (aperçu Markdown). Si les schémas ne s'affichent pas, installe l'extension **"Markdown Preview Mermaid Support"**.
 
@@ -115,9 +115,11 @@ classDiagram
         +extraireCandidat(buffer: char[], index: int, longueur: int) String$
         +parcourirTableau(buffer: char[], nombreCandidats: int, longueur: int) long$
         +hacherTableau(buffer: char[], nombreCandidats: int, longueur: int) long$
+        +debitMoyenHachageTableau(buffer: char[], nombreCandidats: int, longueur: int, essais: int) double$
         +genererListeDispersee(nombreCandidats: int, longueur: int) Node$
         +parcourirListe(tete: Node) long$
         +hacherListe(tete: Node) long$
+        +debitMoyenHachageListe(tete: Node, nombreCandidats: int, essais: int) double$
     }
     class Node {
         +String candidat
@@ -249,7 +251,32 @@ flowchart TD
 
 ---
 
-## 8. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java`)
+## 8. Séance 2 — Partie 4 : Validation de la sympathie matérielle (verdict final)
+
+`debitMoyenHachageTableau()` / `debitMoyenHachageListe()` moyennent le débit sur **10 essais** (au lieu de 3) pour une confirmation statistique — sans toucher une seule ligne de `sha256()` ou des méthodes de hachage.
+
+```mermaid
+flowchart TD
+    Mesure["10 essais chronometres\npar structure"] --> Moyenne["Debit moyen tableau : 1 141 690 c/s\nDebit moyen liste   : 1 170 930 c/s"]
+    Moyenne --> Ecart["Ecart : -2,50 %"]
+    Ecart --> Seuil{"|ecart| < 5% ?"}
+    Seuil -- "oui" --> Bruit["Verdict : PAS de gain mesurable\n(bruit de mesure, pas un effet reel)"]
+    Seuil -- "non" --> Gain["Verdict : gain mesurable attribue\na la disposition memoire"]
+
+    style Mesure fill:#2d6cdf,color:#fff
+    style Bruit fill:#f9a825,color:#000
+    style Gain fill:#2e7d32,color:#fff
+```
+
+**Verdict obtenu : PAS de gain mesurable.** Résultat cohérent avec la Partie 3 : le calcul CPU (hachage naïf) domine si largement le temps par candidat que la disposition mémoire, pourtant x8-x10 plus rapide en accès pur (Partie 2), n'a aucun effet visible sur le débit final.
+
+**Ce que ça valide réellement :** la localité spatiale est bien réelle et démontrée (Partie 2) — mais un gain sur un sous-système ne se traduit en gain global que s'il touche le goulot *dominant* du système complet. C'est la preuve pratique de la règle scientifique du cours : "toujours profiler avant d'optimiser". Détails : [process/07-seance2-partie4-validation-sympathie-materielle.md](../process/07-seance2-partie4-validation-sympathie-materielle.md).
+
+> **Séance 2 terminée.** Synthèse complète à retenir : [syntheses/02-seance2-cpu-caches-localite-memoire.md](../syntheses/02-seance2-cpu-caches-localite-memoire.md).
+
+---
+
+## 9. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java`)
 
 ```mermaid
 graph LR
@@ -291,7 +318,7 @@ graph LR
 
 ---
 
-## 9. Baseline mesurée — z3D vs Sh3n
+## 10. Baseline mesurée — z3D vs Sh3n
 
 ```mermaid
 xychart-beta
@@ -305,7 +332,7 @@ L'espace de recherche est ~62x plus grand pour `Sh3n` (un caractère de plus) et
 
 ---
 
-## 10. Où on en est dans le TP
+## 11. Où on en est dans le TP
 
 ```mermaid
 flowchart LR
@@ -314,7 +341,7 @@ flowchart LR
     C --> D["✅ Séance 2 Partie 1\nStockage contigu vs dispersé"]
     D --> E["✅ Séance 2 Partie 2\nParcours linéaire vs aléatoire\n(~1-2 ms vs ~10-12 ms)"]
     E --> F["✅ Séance 2 Partie 3\nGoulot mémoire\n(masqué par le hachage naïf — cf. Amdahl)"]
-    F --> G["⬜ Séance 2 Partie 4\nValidation sympathie matérielle"]
+    F --> G["✅ Séance 2 Partie 4\nValidation (verdict: pas de gain,\nAmdahl confirmé sur 10 essais)"]
     G --> H["⬜ Séances suivantes :\nzéro-allocation, profiling,\nworkers, gRPC, SQL"]
 
     style A fill:#2e7d32,color:#fff
@@ -323,6 +350,8 @@ flowchart LR
     style D fill:#2e7d32,color:#fff
     style E fill:#2e7d32,color:#fff
     style F fill:#2e7d32,color:#fff
-    style G fill:#f9a825,color:#000
+    style G fill:#2e7d32,color:#fff
     style H fill:#9e9e9e,color:#fff
 ```
+
+**Séance 2 (Localité Spatiale & Lignes de Cache) terminée.**

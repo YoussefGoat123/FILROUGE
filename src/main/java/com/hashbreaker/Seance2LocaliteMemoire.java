@@ -15,6 +15,10 @@ import java.security.NoSuchAlgorithmException;
  * Partie 3 : refaire le meme parcours mais en hachant chaque candidat (SHA-256),
  * pour observer le debit de calcul (hachages/seconde) sous charge CPU reelle.
  *
+ * Partie 4 : valider (ou infirmer) sur un plus grand nombre d'essais si la disposition
+ * contigue maximise reellement le debit de hachage, sans modifier sha256() ni les
+ * methodes de hachage elles-memes -- uniquement la structure qui les alimente.
+ *
  * Reutilise le compteur base-N et l'alphabet de Main (Seance 1).
  */
 public class Seance2LocaliteMemoire {
@@ -97,6 +101,58 @@ public class Seance2LocaliteMemoire {
             long fin = System.nanoTime();
             afficherDebit(rep, debut, fin, nombreCandidats);
         }
+
+        // ---- Partie 4 : validation de la sympathie materielle ----
+        System.out.println();
+        System.out.println("=== Partie 4 : validation de la sympathie materielle ===");
+
+        int essaisValidation = 10;
+        double debitTableau = debitMoyenHachageTableau(tableauContigu, nombreCandidats, longueur, essaisValidation);
+        double debitListe = debitMoyenHachageListe(listeDispersee, nombreCandidats, essaisValidation);
+        double ecartPourcent = ((debitTableau - debitListe) / debitListe) * 100;
+
+        System.out.println("Debit moyen tableau contigu (n=" + essaisValidation + ") : " + (long) debitTableau + " candidats/s");
+        System.out.println("Debit moyen liste chainee   (n=" + essaisValidation + ") : " + (long) debitListe + " candidats/s");
+        System.out.println("Ecart : " + String.format("%.2f", ecartPourcent) + " %");
+        System.out.println();
+
+        // seuil de 5% : en-dessous, on considere l'ecart comme du bruit de mesure, pas un vrai gain
+        if (Math.abs(ecartPourcent) < 5.0) {
+            System.out.println("Verdict : PAS de gain mesurable sur le debit de hachage a ce stade.");
+            System.out.println("          Le cout du hachage naif (conversion hexadecimale par concatenation)");
+            System.out.println("          domine largement le cout d'acces memoire (cf. Partie 3, loi d'Amdahl).");
+            System.out.println("          La disposition memoire reste optimale en soi (Parties 1-2 le prouvent),");
+            System.out.println("          mais son effet est masque tant que sha256() reste aussi couteux en CPU.");
+        } else {
+            System.out.println("Verdict : la disposition contigue offre un gain mesurable de "
+                    + String.format("%.1f", ecartPourcent) + "% sur le debit de hachage.");
+        }
+    }
+
+    // moyenne le debit de hachage (candidats/seconde) du tableau contigu sur plusieurs essais
+    static double debitMoyenHachageTableau(char[] buffer, int nombreCandidats, int longueur, int essais) throws NoSuchAlgorithmException {
+        long dureeTotaleNs = 0;
+        for (int i = 0; i < essais; i++) {
+            long debut = System.nanoTime();
+            hacherTableau(buffer, nombreCandidats, longueur);
+            long fin = System.nanoTime();
+            dureeTotaleNs += (fin - debut);
+        }
+        double dureeMoyenneSec = (dureeTotaleNs / (double) essais) / 1_000_000_000.0;
+        return nombreCandidats / dureeMoyenneSec;
+    }
+
+    // moyenne le debit de hachage (candidats/seconde) de la liste chainee sur plusieurs essais
+    static double debitMoyenHachageListe(Node tete, int nombreCandidats, int essais) throws NoSuchAlgorithmException {
+        long dureeTotaleNs = 0;
+        for (int i = 0; i < essais; i++) {
+            long debut = System.nanoTime();
+            hacherListe(tete);
+            long fin = System.nanoTime();
+            dureeTotaleNs += (fin - debut);
+        }
+        double dureeMoyenneSec = (dureeTotaleNs / (double) essais) / 1_000_000_000.0;
+        return nombreCandidats / dureeMoyenneSec;
     }
 
     // affiche le temps ecoule et le debit (candidats/seconde) d'un essai de hachage
