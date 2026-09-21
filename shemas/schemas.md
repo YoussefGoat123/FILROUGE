@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (Séance 1 + Séance 2 Partie 1)
+# Schémas — État actuel du projet (Séance 1 + Séance 2 Parties 1-2)
 
 Diagrammes Mermaid de ce qui a été produit jusqu'ici : structure du projet, code de `Main.java` et `Seance2LocaliteMemoire.java`, flux d'exécution et couverture des tests.
 
@@ -113,7 +113,9 @@ classDiagram
         +main(args: String[]) void
         +genererTableauContigu(nombreCandidats: int, longueur: int) char[]$
         +extraireCandidat(buffer: char[], index: int, longueur: int) String$
+        +parcourirTableau(buffer: char[], nombreCandidats: int, longueur: int) long$
         +genererListeDispersee(nombreCandidats: int, longueur: int) Node$
+        +parcourirListe(tete: Node) long$
     }
     class Node {
         +String candidat
@@ -156,11 +158,63 @@ flowchart TD
 
 > Rappel important (cf. [comprendre-cpu-caches.md](../compréhension/comprendre-cpu-caches.md)) : un `String[]` Java n'aurait **pas** donné un vrai bloc contigu — seul un tableau de type primitif (`char[]`) garantit l'absence d'indirection. C'est pour ça que la Structure A utilise `char[]` et pas `String[]`.
 
-Les deux structures contiennent **exactement les mêmes candidats, dans le même ordre** (vérifié par les tests) — seule leur disposition physique en mémoire diffère. C'est cette différence, et uniquement elle, que la Partie 2 va mesurer.
+Les deux structures contiennent **exactement les mêmes candidats, dans le même ordre** (vérifié par les tests) — seule leur disposition physique en mémoire diffère.
 
 ---
 
-## 6. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java`)
+## 6. Séance 2 — Partie 2 : Parcours linéaire vs aléatoire
+
+`parcourirTableau()` lit le `char[]` séquentiellement (profite des lignes de cache 64 octets + prefetcher). `parcourirListe()` suit les pointeurs `suivant` un par un (pointer-chasing). Les deux calculent un checksum identique — seul le temps d'accès change.
+
+```mermaid
+sequenceDiagram
+    participant Main as main()
+    participant A as parcourirTableau()
+    participant B as parcourirListe()
+
+    Note over Main: 1 tour d'échauffement (non chronométré)
+    Main->>A: warm-up
+    Main->>B: warm-up
+
+    loop 5 essais chronométrés
+        Main->>A: System.nanoTime() → parcourirTableau() → nanoTime()
+        A-->>Main: checksum + durée
+    end
+    loop 5 essais chronométrés
+        Main->>B: System.nanoTime() → parcourirListe() → nanoTime()
+        B-->>Main: checksum + durée
+    end
+```
+
+### Résultats mesurés (1 000 000 candidats, longueur 4)
+
+```mermaid
+xychart-beta
+    title "Temps de parcours par essai (ms) — plus bas = mieux"
+    x-axis ["Essai 1", "Essai 2", "Essai 3", "Essai 4", "Essai 5"]
+    y-axis "Temps (ms)" 0 --> 13
+    bar [4, 1, 1, 2, 1]
+    bar [12, 11, 10, 11, 10]
+```
+
+*(première série = Structure A tableau contigu, deuxième série = Structure B liste chaînée)*
+
+**Checksum identique dans les deux cas (`360018520`)** : le contenu lu est rigoureusement le même, seule la disposition mémoire change. La liste chaînée est **~8 à 10x plus lente** à parcourir que le tableau contigu.
+
+```mermaid
+flowchart LR
+    A["Tableau contigu\nlecture directe"] -->|"1 accès mémoire\npar caractère"| Fast["~1-2 ms"]
+    B["Liste chaînée\nNode → String → char[]"] -->|"2-3 sauts de pointeurs\npar caractère"| Slow["~10-12 ms"]
+
+    style Fast fill:#2e7d32,color:#fff
+    style Slow fill:#c62828,color:#fff
+```
+
+**Pourquoi un tel écart malgré l'allocation séquentielle en Java ?** Même si la JVM alloue les `Node` les uns après les autres (bump-pointer allocation, potentiellement proches en mémoire), chaque candidat de la liste nécessite **plusieurs indirections** : `Node` → référence `candidat` → objet `String` séparé → tableau interne de caractères. Le tableau contigu, lui, n'a aucune indirection : c'est ça, et pas uniquement la "dispersion physique", qui explique l'essentiel de l'écart mesuré. Détails : [process/05-seance2-partie2-parcours-lineaire-vs-aleatoire.md](../process/05-seance2-partie2-parcours-lineaire-vs-aleatoire.md).
+
+---
+
+## 7. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java`)
 
 ```mermaid
 graph LR
@@ -191,14 +245,16 @@ graph LR
         T18["liste : longueur de chaîne correcte"]
         T19["liste : dernier nœud sans suivant"]
         T20["les deux structures contiennent\nles mêmes candidats, même ordre"]
+        T21["checksum du tableau : valeur exacte"]
+        T22["checksum tableau == checksum liste"]
     end
 ```
 
-**Résultat actuel : 20/20 tests passent.**
+**Résultat actuel : 22/22 tests passent.**
 
 ---
 
-## 7. Baseline mesurée — z3D vs Sh3n
+## 8. Baseline mesurée — z3D vs Sh3n
 
 ```mermaid
 xychart-beta
@@ -212,22 +268,22 @@ L'espace de recherche est ~62x plus grand pour `Sh3n` (un caractère de plus) et
 
 ---
 
-## 8. Où on en est dans le TP
+## 9. Où on en est dans le TP
 
 ```mermaid
 flowchart LR
     A["✅ Init projet Java\n(pom.xml, JDK 21)"] --> B["✅ Algo naïf\n(compteur base-N + SHA-256)"]
     B --> C["✅ Résolution z3D + Sh3n\n(baseline: 249 ms / 10 536 ms)"]
     C --> D["✅ Séance 2 Partie 1\nStockage contigu vs dispersé"]
-    D --> E["⬜ Séance 2 Partie 2\nParcours linéaire vs aléatoire\n(mesure du goulot mémoire)"]
-    E --> F["⬜ Séance 2 Partie 3-4\nObservation + validation\nsympathie matérielle"]
+    D --> E["✅ Séance 2 Partie 2\nParcours linéaire vs aléatoire\n(~1-2 ms vs ~10-12 ms)"]
+    E --> F["⬜ Séance 2 Partie 3-4\nObservation + validation\nsympathie matérielle (débit de hachage)"]
     F --> G["⬜ Séances suivantes :\nzéro-allocation, profiling,\nworkers, gRPC, SQL"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
     style C fill:#2e7d32,color:#fff
     style D fill:#2e7d32,color:#fff
-    style E fill:#f9a825,color:#000
-    style F fill:#9e9e9e,color:#fff
+    style E fill:#2e7d32,color:#fff
+    style F fill:#f9a825,color:#000
     style G fill:#9e9e9e,color:#fff
 ```

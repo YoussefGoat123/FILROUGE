@@ -1,12 +1,14 @@
 package com.hashbreaker;
 
 /**
- * Seance 2 - Partie 1 : Stockage Contigu vs Disperse.
+ * Seance 2 - Localite Spatiale & Lignes de Cache.
  *
- * Objectif : generer le meme lot de candidats sous deux structures differentes
- * pour pouvoir ensuite (Partie 2) comparer leurs performances de parcours :
+ * Partie 1 : generer le meme lot de candidats sous deux structures differentes :
  *   - Structure A : tableau contigu (char[]) -> vrai bloc memoire continu
  *   - Structure B : liste chainee (Node) -> objets disperses sur le tas, relies par pointeurs
+ *
+ * Partie 2 : parcourir chacune des deux structures et chronometrer le temps d'acces,
+ * pour observer l'effet de la localite spatiale (lecture sequentielle vs pointer-chasing).
  *
  * Reutilise le compteur base-N et l'alphabet de Main (Seance 1).
  */
@@ -34,6 +36,34 @@ public class Seance2LocaliteMemoire {
             System.out.println("  [" + i + "] tableau=" + candidatTableau + "  liste=" + candidatListe);
             courant = courant.suivant;
         }
+
+        // ---- Partie 2 : parcours (mesure du temps d'acces) ----
+        System.out.println();
+        System.out.println("=== Partie 2 : parcours sequentiel, temps d'acces ===");
+
+        // 1 tour d'echauffement (non chronometre) pour laisser le JIT compiler les boucles a chaud
+        parcourirTableau(tableauContigu, nombreCandidats, longueur);
+        parcourirListe(listeDispersee);
+
+        int nombreRepetitions = 5;
+
+        System.out.println();
+        System.out.println("-- Structure A : tableau contigu --");
+        for (int rep = 1; rep <= nombreRepetitions; rep++) {
+            long debut = System.nanoTime();
+            long checksum = parcourirTableau(tableauContigu, nombreCandidats, longueur);
+            long fin = System.nanoTime();
+            System.out.println("  Essai " + rep + " : " + (fin - debut) / 1_000_000 + " ms (checksum=" + checksum + ")");
+        }
+
+        System.out.println();
+        System.out.println("-- Structure B : liste chainee --");
+        for (int rep = 1; rep <= nombreRepetitions; rep++) {
+            long debut = System.nanoTime();
+            long checksum = parcourirListe(listeDispersee);
+            long fin = System.nanoTime();
+            System.out.println("  Essai " + rep + " : " + (fin - debut) / 1_000_000 + " ms (checksum=" + checksum + ")");
+        }
     }
 
     // ---- Structure A : tableau contigu ----
@@ -56,6 +86,16 @@ public class Seance2LocaliteMemoire {
     // relit le candidat n°index dans le buffer contigu
     static String extraireCandidat(char[] buffer, int index, int longueur) {
         return new String(buffer, index * longueur, longueur);
+    }
+
+    // parcourt le tableau contigu sequentiellement, case par case.
+    // le checksum sert juste a empecher le JIT de supprimer la boucle (dead code elimination)
+    static long parcourirTableau(char[] buffer, int nombreCandidats, int longueur) {
+        long somme = 0;
+        for (int i = 0; i < nombreCandidats * longueur; i++) {
+            somme += buffer[i];
+        }
+        return somme;
     }
 
     // ---- Structure B : liste chainee dispersee ----
@@ -86,5 +126,19 @@ public class Seance2LocaliteMemoire {
         }
 
         return tete;
+    }
+
+    // parcourt la liste chainee en suivant les pointeurs "suivant" un par un (pointer-chasing).
+    // meme calcul que parcourirTableau, seule la structure parcourue change.
+    static long parcourirListe(Node tete) {
+        long somme = 0;
+        Node courant = tete;
+        while (courant != null) {
+            for (int i = 0; i < courant.candidat.length(); i++) {
+                somme += courant.candidat.charAt(i);
+            }
+            courant = courant.suivant;
+        }
+        return somme;
     }
 }

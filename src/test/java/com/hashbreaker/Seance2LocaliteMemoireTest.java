@@ -84,4 +84,27 @@ class Seance2LocaliteMemoireTest {
             courant = courant.suivant;
         }
     }
+
+    // ---- Partie 2 : parcourirTableau() / parcourirListe() ----
+
+    @Test
+    void parcourirTableau_sommeLesCodesDeTousLesCaracteres() {
+        // 2 candidats de longueur 2 : "aa" (97,97) puis "ab" (97,98) -> somme = 389
+        char[] buffer = Seance2LocaliteMemoire.genererTableauContigu(2, 2);
+        assertEquals(97 + 97 + 97 + 98, Seance2LocaliteMemoire.parcourirTableau(buffer, 2, 2));
+    }
+
+    @Test
+    void parcourirTableauEtParcourirListe_donnentLeMemeChecksum() {
+        int nombreCandidats = 50;
+        int longueur = 4;
+
+        char[] tableau = Seance2LocaliteMemoire.genererTableauContigu(nombreCandidats, longueur);
+        Seance2LocaliteMemoire.Node liste = Seance2LocaliteMemoire.genererListeDispersee(nombreCandidats, longueur);
+
+        long checksumTableau = Seance2LocaliteMemoire.parcourirTableau(tableau, nombreCandidats, longueur);
+        long checksumListe = Seance2LocaliteMemoire.parcourirListe(liste);
+
+        assertEquals(checksumTableau, checksumListe);
+    }
 }
