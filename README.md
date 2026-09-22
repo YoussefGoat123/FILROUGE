@@ -102,7 +102,7 @@ Objectif : initialiser le projet et obtenir une référence de performance avant
 ## Prochaines étapes (créneaux suivants)
 
 - [x] Localité mémoire & lignes de cache (Séance 2 — terminée, cf. [syntheses/02-seance2-cpu-caches-localite-memoire.md](syntheses/02-seance2-cpu-caches-localite-memoire.md))
-- [ ] Alignement mémoire & struct padding, zéro-allocation (Séance 3 — en cours, cf. [compréhension/comprendre-memoire-stack-heap.md](compréhension/comprendre-memoire-stack-heap.md))
+- [x] Alignement mémoire & struct padding, zéro-allocation (Séance 3 — terminée, cf. [syntheses/03-seance3-memoire-zero-allocation.md](syntheses/03-seance3-memoire-zero-allocation.md))
 - [ ] Profiling (Flamegraph / pprof)
 - [ ] Workers bornés (parallélisme multi-cœurs)
 - [ ] Streaming binaire gRPC

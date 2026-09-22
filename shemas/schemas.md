@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (Séance 1, Séance 2 complète, Séance 3 : 3/4 parties)
+# Schémas — État actuel du projet (Séance 1, Séance 2 et Séance 3 complètes)
 
 Diagrammes Mermaid de ce qui a été produit jusqu'ici : structure du projet, code de `Main.java` et `Seance2LocaliteMemoire.java`, flux d'exécution et couverture des tests.
 
@@ -376,7 +376,39 @@ xychart-beta
 
 ---
 
-## 12. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java` + `Seance3ZeroAllocationTest.java`)
+## 12. Séance 3 — Partie 4 : Validation 0 allocs/op (verdict final)
+
+Même protocole JFR que le diagnostic initial (section 9), appliqué cette fois à la version zéro-allocation, pour comparer objectivement les deux enregistrements.
+
+```mermaid
+flowchart LR
+    subgraph Naif["Naif (Etape 08)"]
+    direction TB
+    N1["406 cycles Young GC"]
+    N2["448,5 ms de pauses"]
+    N3["7221 echantillons alloc.\n6610 dans com.hashbreaker"]
+    end
+    subgraph Zero["Zero-allocation (Etape 11)"]
+    direction TB
+    Z1["1 cycle Young GC"]
+    Z2["10,7 ms de pauses"]
+    Z3["4 echantillons alloc.\n0 dans com.hashbreaker"]
+    end
+    Naif -->|"÷406 cycles\n÷42 temps GC\n÷1805 allocations"| Zero
+
+    style Naif fill:#c62828,color:#fff
+    style Zero fill:#2e7d32,color:#fff
+```
+
+**Les 4 échantillons résiduels ne proviennent pas de notre code** (vérifié stack trace par stack trace) : 3 viennent de JFR lui-même (son propre `StringPool` interne) et 1 du thread de compilation JIT (`C1 CompilerThread0`). **Zéro allocation attribuable à `com.hashbreaker`** dans la boucle critique — l'objectif "0 allocs/op" du cours est atteint au sens strict.
+
+> **Verdict : validation réussie.** Contrairement à la Séance 2 (où la correction n'avait donné aucun gain visible, goulot CPU dominant), ici la correction ciblée sur le vrai goulot identifié en Partie 1 (`sha256()`, ~94% des allocations) a produit un effet massif et mesurable. Détails : [process/11-seance3-partie4-validation-zero-allocation.md](../process/11-seance3-partie4-validation-zero-allocation.md).
+
+> **Séance 3 terminée.** Synthèse complète à retenir : [syntheses/03-seance3-memoire-zero-allocation.md](../syntheses/03-seance3-memoire-zero-allocation.md).
+
+---
+
+## 13. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java` + `Seance3ZeroAllocationTest.java`)
 
 ```mermaid
 graph LR
@@ -426,7 +458,7 @@ graph LR
 
 ---
 
-## 13. Baseline mesurée — z3D vs Sh3n
+## 14. Baseline mesurée — z3D vs Sh3n
 
 ```mermaid
 xychart-beta
@@ -440,7 +472,7 @@ L'espace de recherche est ~62x plus grand pour `Sh3n` (un caractère de plus) et
 
 ---
 
-## 14. Où on en est dans le TP
+## 15. Où on en est dans le TP
 
 ```mermaid
 flowchart LR
@@ -453,7 +485,7 @@ flowchart LR
     G --> H["✅ Séance 3 Partie 1\nDiagnostic JFR\n(sha256() = ~94% des allocations)"]
     H --> I["✅ Séance 3 Partie 2\nPadding (JOL) :\naucun effet en Java (JVM reordonne deja)"]
     I --> J["✅ Séance 3 Partie 3\nBuffers fixes :\nSh3n 10536ms → 2803ms (x3,76)"]
-    J --> K["⬜ Séance 3 Partie 4\nValidation 0 allocs/op (JFR)"]
+    J --> K["✅ Séance 3 Partie 4\nValidation : 406→1 cycle GC,\n0 alloc. attribuable au code"]
     K --> L["⬜ Séances suivantes :\nprofiling, workers, gRPC, SQL"]
 
     style A fill:#2e7d32,color:#fff
@@ -466,8 +498,8 @@ flowchart LR
     style H fill:#2e7d32,color:#fff
     style I fill:#2e7d32,color:#fff
     style J fill:#2e7d32,color:#fff
-    style K fill:#f9a825,color:#000
+    style K fill:#2e7d32,color:#fff
     style L fill:#9e9e9e,color:#fff
 ```
 
-**Séance 2 terminée. Séance 3 (Zéro-Allocation & Struct Padding) en cours — plus qu'une partie (validation 0 allocs/op).**
+**Séance 2 et Séance 3 terminées.**
