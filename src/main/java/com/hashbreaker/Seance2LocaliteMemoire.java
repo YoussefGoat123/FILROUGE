@@ -27,6 +27,8 @@ public class Seance2LocaliteMemoire {
         int nombreCandidats = 1_000_000;
         int longueur = 4;
 
+        afficherEntete("PARTIE 1 : STOCKAGE CONTIGU VS DISPERSE");
+
         System.out.println("Generation de " + nombreCandidats + " candidats (longueur " + longueur + ")");
 
         char[] tableauContigu = genererTableauContigu(nombreCandidats, longueur);
@@ -47,8 +49,7 @@ public class Seance2LocaliteMemoire {
         }
 
         // ---- Partie 2 : parcours (mesure du temps d'acces) ----
-        System.out.println();
-        System.out.println("=== Partie 2 : parcours sequentiel, temps d'acces ===");
+        afficherEntete("PARTIE 2 : PARCOURS LINEAIRE VS ALEATOIRE (temps d'acces)");
 
         // 1 tour d'echauffement (non chronometre) pour laisser le JIT compiler les boucles a chaud
         parcourirTableau(tableauContigu, nombreCandidats, longueur);
@@ -75,8 +76,7 @@ public class Seance2LocaliteMemoire {
         }
 
         // ---- Partie 3 : goulot memoire (hachage SHA-256 de chaque candidat) ----
-        System.out.println();
-        System.out.println("=== Partie 3 : hachage complet, observation du debit de calcul ===");
+        afficherEntete("PARTIE 3 : OBSERVATION DU GOULOT MEMOIRE (hachage complet)");
 
         // echauffement (non chronometre)
         hacherTableau(tableauContigu, nombreCandidats, longueur);
@@ -103,8 +103,7 @@ public class Seance2LocaliteMemoire {
         }
 
         // ---- Partie 4 : validation de la sympathie materielle ----
-        System.out.println();
-        System.out.println("=== Partie 4 : validation de la sympathie materielle ===");
+        afficherEntete("PARTIE 4 : VALIDATION DE LA SYMPATHIE MATERIELLE");
 
         int essaisValidation = 10;
         double debitTableau = debitMoyenHachageTableau(tableauContigu, nombreCandidats, longueur, essaisValidation);
@@ -153,6 +152,15 @@ public class Seance2LocaliteMemoire {
         }
         double dureeMoyenneSec = (dureeTotaleNs / (double) essais) / 1_000_000_000.0;
         return nombreCandidats / dureeMoyenneSec;
+    }
+
+    // affiche une banniere pour delimiter clairement chaque partie dans la sortie console
+    static void afficherEntete(String titre) {
+        String ligne = "=".repeat(70);
+        System.out.println();
+        System.out.println(ligne);
+        System.out.println(titre);
+        System.out.println(ligne);
     }
 
     // affiche le temps ecoule et le debit (candidats/seconde) d'un essai de hachage
