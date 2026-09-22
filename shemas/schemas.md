@@ -307,7 +307,37 @@ xychart-beta
 
 ---
 
-## 10. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java`)
+## 10. Séance 3 — Partie 2 : Compactage de structure (Padding) — l'astuce Go ne marche pas en Java
+
+Vérifié empiriquement avec **JOL** (Java Object Layout) sur deux classes identiques, seul l'ordre de déclaration des champs change.
+
+```mermaid
+flowchart LR
+    subgraph Bad["CandidatDesordonne (ordre 'bad' comme en Go)"]
+    direction TB
+    B1["mark+classe (12B)"] --> B2["longueur int (4B)"] --> B3["tentatives long (8B)"] --> B4["trouve+charsetId (2B)"] --> B5["padding (2B)"] --> B6["cible String ref (4B)"]
+    end
+    subgraph Good["CandidatOrdonne (trie par taille decroissante)"]
+    direction TB
+    G1["mark+classe (12B)"] --> G2["longueur int (4B)"] --> G3["tentatives long (8B)"] --> G4["trouve+charsetId (2B)"] --> G5["padding (2B)"] --> G6["cible String ref (4B)"]
+    end
+    Bad -.->|"IDENTIQUE"| Good
+
+    style Bad fill:#2d6cdf,color:#fff
+    style Good fill:#2d6cdf,color:#fff
+```
+
+**Résultat : les deux classes font exactement 32 octets, avec le même agencement au byte près.** La JVM HotSpot réordonne déjà les champs elle-même — l'ordre choisi dans le code source n'a **aucune influence** sur le résultat final, contrairement à Go où c'est le développeur qui doit s'en charger manuellement.
+
+**Deux découvertes bonus grâce à l'outil :**
+- L'en-tête d'objet Java (12 octets) est un coût que Go n'a pas — explique en partie le surcoût mesuré sur nos `Node` en Séance 2.
+- La référence `String` ne pèse que 4 octets (pas 8) grâce aux *compressed oops* activés par défaut.
+
+> **Conséquence** : le levier "struct padding" du cours ne s'applique pas en Java tel quel — rien à optimiser manuellement ici. Le vrai levier zéro-allocation reste celui de la Partie 1 : `sha256()`. Détails : [process/09-seance3-partie2-padding.md](../process/09-seance3-partie2-padding.md).
+
+---
+
+## 11. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java`)
 
 ```mermaid
 graph LR
@@ -349,7 +379,7 @@ graph LR
 
 ---
 
-## 11. Baseline mesurée — z3D vs Sh3n
+## 12. Baseline mesurée — z3D vs Sh3n
 
 ```mermaid
 xychart-beta
@@ -363,7 +393,7 @@ L'espace de recherche est ~62x plus grand pour `Sh3n` (un caractère de plus) et
 
 ---
 
-## 12. Où on en est dans le TP
+## 13. Où on en est dans le TP
 
 ```mermaid
 flowchart LR
@@ -374,8 +404,9 @@ flowchart LR
     E --> F["✅ Séance 2 Partie 3\nGoulot mémoire\n(masqué par le hachage naïf — cf. Amdahl)"]
     F --> G["✅ Séance 2 Partie 4\nValidation (verdict: pas de gain,\nAmdahl confirmé sur 10 essais)"]
     G --> H["✅ Séance 3 Partie 1\nDiagnostic JFR\n(sha256() = ~94% des allocations)"]
-    H --> I["⬜ Séance 3 Partie 2-4\nPadding, buffers fixes,\nvalidation 0 allocs/op"]
-    I --> J["⬜ Séances suivantes :\nprofiling, workers, gRPC, SQL"]
+    H --> I["✅ Séance 3 Partie 2\nPadding (JOL) :\naucun effet en Java (JVM reordonne deja)"]
+    I --> J["⬜ Séance 3 Partie 3-4\nBuffers fixes,\nvalidation 0 allocs/op"]
+    J --> K["⬜ Séances suivantes :\nprofiling, workers, gRPC, SQL"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
@@ -385,8 +416,9 @@ flowchart LR
     style F fill:#2e7d32,color:#fff
     style G fill:#2e7d32,color:#fff
     style H fill:#2e7d32,color:#fff
-    style I fill:#f9a825,color:#000
-    style J fill:#9e9e9e,color:#fff
+    style I fill:#2e7d32,color:#fff
+    style J fill:#f9a825,color:#000
+    style K fill:#9e9e9e,color:#fff
 ```
 
 **Séance 2 terminée. Séance 3 (Zéro-Allocation & Struct Padding) en cours.**
