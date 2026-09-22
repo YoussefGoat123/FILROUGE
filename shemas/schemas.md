@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (Séance 1 + Séance 2 complète)
+# Schémas — État actuel du projet (Séance 1, Séance 2 complète, Séance 3 en cours)
 
 Diagrammes Mermaid de ce qui a été produit jusqu'ici : structure du projet, code de `Main.java` et `Seance2LocaliteMemoire.java`, flux d'exécution et couverture des tests.
 
@@ -276,7 +276,38 @@ flowchart TD
 
 ---
 
-## 9. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java`)
+## 9. Séance 3 — Partie 1 : Diagnostic Escape Analysis (via JFR)
+
+Pas d'équivalent Java à `go build -gcflags="-m"` : diagnostic fait par profiling réel (Java Flight Recorder) sur `Main.java` (version naïve inchangée), preuve conservée dans [profiling/seance3-diagnostic-naif.jfr](../profiling/seance3-diagnostic-naif.jfr).
+
+```mermaid
+flowchart TD
+    Run["Main.java (naif) sous JFR\n~24,3 s (z3D + Sh3n)"] --> GC["406 cycles de Young GC\n448,5 ms de pauses (~1,8%)"]
+    Run --> Alloc["7221 echantillons d'allocation"]
+    Alloc --> Types["byte[] : 61% -- String : 36%\n(=97% des allocations)"]
+    Types --> Sites["Repartition par ligne de code"]
+
+    style GC fill:#f9a825,color:#000
+    style Types fill:#c62828,color:#fff
+```
+
+### Répartition par ligne de code — le vrai coupable n'est pas celui attendu
+
+```mermaid
+xychart-beta
+    title "Echantillons d'allocation par site (sur 6610 attribues a HashBreaker)"
+    x-axis ["sha256() L99\n(hex concat)", "sha256() L95\n(toHexString)", "sha256() L89\n(getInstance)", "sha256() L90\n(getBytes)", "construireCandidat()\nL64"]
+    y-axis "Echantillons" 0 --> 4000
+    bar [3853, 2349, 129, 118, 291]
+```
+
+**Surprise mesurée :** on s'attendait (Séance 1) à ce que `construireCandidat()` (concaténation du mot candidat) soit le principal coupable. En réalité il ne pèse que **~4,4%** des allocations. Le vrai goulot est la **conversion hexadécimale dans `sha256()`** (lignes 95 + 99), qui à elle seule totalise **~94%** des allocations attribuées à notre code — plus une inefficacité annexe découverte au passage : `MessageDigest.getInstance("SHA-256")` est recréé à chaque tentative au lieu d'être réutilisé.
+
+> **Conséquence directe pour la Partie 3 (buffers fixes)** : la correction zéro-allocation doit cibler `sha256()` en priorité, pas seulement `construireCandidat()`. Nouvelle preuve de la règle "toujours profiler avant d'optimiser". Détails : [process/08-seance3-partie1-diagnostic-escape-analysis.md](../process/08-seance3-partie1-diagnostic-escape-analysis.md).
+
+---
+
+## 10. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java`)
 
 ```mermaid
 graph LR
@@ -318,7 +349,7 @@ graph LR
 
 ---
 
-## 10. Baseline mesurée — z3D vs Sh3n
+## 11. Baseline mesurée — z3D vs Sh3n
 
 ```mermaid
 xychart-beta
@@ -332,7 +363,7 @@ L'espace de recherche est ~62x plus grand pour `Sh3n` (un caractère de plus) et
 
 ---
 
-## 11. Où on en est dans le TP
+## 12. Où on en est dans le TP
 
 ```mermaid
 flowchart LR
@@ -342,7 +373,9 @@ flowchart LR
     D --> E["✅ Séance 2 Partie 2\nParcours linéaire vs aléatoire\n(~1-2 ms vs ~10-12 ms)"]
     E --> F["✅ Séance 2 Partie 3\nGoulot mémoire\n(masqué par le hachage naïf — cf. Amdahl)"]
     F --> G["✅ Séance 2 Partie 4\nValidation (verdict: pas de gain,\nAmdahl confirmé sur 10 essais)"]
-    G --> H["⬜ Séances suivantes :\nzéro-allocation, profiling,\nworkers, gRPC, SQL"]
+    G --> H["✅ Séance 3 Partie 1\nDiagnostic JFR\n(sha256() = ~94% des allocations)"]
+    H --> I["⬜ Séance 3 Partie 2-4\nPadding, buffers fixes,\nvalidation 0 allocs/op"]
+    I --> J["⬜ Séances suivantes :\nprofiling, workers, gRPC, SQL"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
@@ -351,7 +384,9 @@ flowchart LR
     style E fill:#2e7d32,color:#fff
     style F fill:#2e7d32,color:#fff
     style G fill:#2e7d32,color:#fff
-    style H fill:#9e9e9e,color:#fff
+    style H fill:#2e7d32,color:#fff
+    style I fill:#f9a825,color:#000
+    style J fill:#9e9e9e,color:#fff
 ```
 
-**Séance 2 (Localité Spatiale & Lignes de Cache) terminée.**
+**Séance 2 terminée. Séance 3 (Zéro-Allocation & Struct Padding) en cours.**

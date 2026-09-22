@@ -15,6 +15,7 @@ Mis à jour à chaque modification significative du projet — un fichier par é
 | 05 | [Parcours linéaire vs aléatoire](05-seance2-partie2-parcours-lineaire-vs-aleatoire.md) | Séance 2 — Partie 2 | ✅ |
 | 06 | [Observation du goulot mémoire](06-seance2-partie3-observation-goulot-memoire.md) | Séance 2 — Partie 3 | ✅ |
 | 07 | [Validation de la sympathie matérielle](07-seance2-partie4-validation-sympathie-materielle.md) | Séance 2 — Partie 4 | ✅ |
+| 08 | [Diagnostic Escape Analysis (JFR)](08-seance3-partie1-diagnostic-escape-analysis.md) | Séance 3 — Partie 1 | ✅ |
 
 ## Voir aussi
 

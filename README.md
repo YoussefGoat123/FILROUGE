@@ -101,9 +101,9 @@ Objectif : initialiser le projet et obtenir une référence de performance avant
 
 ## Prochaines étapes (créneaux suivants)
 
-- Alignement mémoire & struct padding
-- Zéro-allocation (suppression de la pression sur le GC)
-- Profiling (Flamegraph / pprof)
-- Workers bornés (parallélisme multi-cœurs)
-- Streaming binaire gRPC
-- Indexation SQL
+- [x] Localité mémoire & lignes de cache (Séance 2 — terminée, cf. [syntheses/02-seance2-cpu-caches-localite-memoire.md](syntheses/02-seance2-cpu-caches-localite-memoire.md))
+- [ ] Alignement mémoire & struct padding, zéro-allocation (Séance 3 — en cours, cf. [compréhension/comprendre-memoire-stack-heap.md](compréhension/comprendre-memoire-stack-heap.md))
+- [ ] Profiling (Flamegraph / pprof)
+- [ ] Workers bornés (parallélisme multi-cœurs)
+- [ ] Streaming binaire gRPC
+- [ ] Indexation SQL

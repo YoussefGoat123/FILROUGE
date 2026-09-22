@@ -1,6 +1,8 @@
 # Choix du Sujet — Projet Noté (RNCP Bloc 4)
 
 > Ce document fixe le choix définitif du sujet libre pour le projet noté, distinct du TP fil rouge HashBreaker (qui reste le démonstrateur guidé — cf. [sujets.md](sujets.md) pour les 4 pistes envisagées à l'origine).
+>
+> Vérifié le 2026-09-22 contre le barème d'évaluation officiel du TP noté (*Rapport d'Audit de Performance*, 20 pts + 2 bonus). Le sujet reste **cohérent et pertinent**, sous réserve d'élargir la portée initialement prévue — voir section dédiée ci-dessous.
 
 ## Sujet retenu : Moteur d'échecs — Minimax / Alpha-Beta
 
@@ -28,6 +30,33 @@ Un moteur d'échecs capable de :
 | **Table de transposition** | Cache (hash map) des positions déjà évaluées, pour ne jamais recalculer deux fois la même position atteinte par des chemins différents |
 | **Recherche parallèle** | Répartir l'exploration de l'arbre sur plusieurs cœurs (workers bornés) |
 
+## Cohérence avec le barème d'évaluation (20 pts + 2 bonus)
+
+**Point structurant du barème, à ne jamais perdre de vue :** *"Le code source déposé sert exclusivement de pièce à conviction... Le code en tant que tel n'est pas noté. Seul le document final (Rapport d'Audit) fait foi pour la notation."* Autrement dit, le projet noté n'est pas évalué comme HashBreaker (où le code + les process/syntheses suffisent) — il faut produire **un unique document final consolidé** (PDF ou Markdown propre), le code n'étant qu'une preuve de reproductibilité. La méthode `process/` + `syntheses/` rodée sur HashBreaker reste la bonne façon de **travailler** au jour le jour, mais elle devra être **compilée en un rapport final unique** à la fin, structuré exactement selon les 5 sections du barème.
+
+> ⚠️ **Confirmé par le formateur en live (2026-09-22)** : le code doit être **rendu quand même** (dépôt Git ou archive), même s'il n'est pas noté directement — il sert de preuve de reproductibilité pour le rapport. **Ne pas oublier de livrer les deux** : le rapport d'audit final ET le code source complet.
+
+| Axe du barème | Pts | Couverture par le moteur d'échecs | Statut |
+|---|---|---|---|
+| 1. Environnement & Métrologie | 3 | Banc d'essai matériel (CPU, cœurs, cache L1/L2/L3, RAM, OS, runtime) + protocole **Hyperfine** (warmup, itérations, moyenne/médiane/écart-type/variance) | ⬜ À faire — générique, indépendant du sujet |
+| 2. Diagnostic matériel & Profiling réel | 5 | Flamegraphs/pprof réels + identification formelle du Hot Path (génération de coups vs évaluation vs tri des coups) | ✅ Très bon fit — le moteur d'échecs a un Hot Path riche et non trivial à découvrir, contrairement à HashBreaker où tout est évidemment CPU-bound dès le départ |
+| 3. Journal d'optimisation (Mémoire, Concurrence, I/O) | 5 | Mémoire : bitboards + zéro-allocation (make/unmake). Concurrence : worker pool + **early cancellation = alpha-beta lui-même**. I/O/Persistance : ⚠️ voir ci-dessous | ⚠️ Le volet I/O/Persistance doit être ajouté explicitement au périmètre (voir plus bas) |
+| 4. Confrontation critique & "Échec constructif" | 3 | Documenter une tentative d'optimisation ratée, chiffrée (ex: parallélisation de la recherche qui régresse à cause du context-switching ou d'un verrou trop fin sur la table de transposition partagée) | ⬜ À planifier explicitement — ne pas laisser ça au hasard, sinon risque de ne rien avoir à documenter |
+| 5. Reproductibilité & Synthèse comparative | 4 | Script one-shot (`Makefile` / `run_benchmarks.sh`) + tableau final Baseline vs Version finale (`benchstat`/`hyperfine`) | ⬜ À faire — générique, indépendant du sujet |
+| BONUS : `constitution.md` | +2 | Fichier de gouvernance IA à la racine, respectant les 4 directives (posture ingénieur système, garde-fous négatifs explicites, couple hypothèse/commande de profiling, formatage compact impératif) | ⬜ À faire une fois le langage choisi (les garde-fous doivent être adaptés à ses anti-patterns spécifiques) |
+
+### Point d'attention : l'axe I/O & Persistance n'est pas optionnel
+
+Dans une première version de ce document, le volet "Streaming binaire / SQL" était noté comme une **extension optionnelle**. Le barème le place en réalité **dans l'axe 3, noté sur 5 pts avec Mémoire et Concurrence** — ce n'est donc pas une extension à faire "si le temps le permet", mais une partie obligatoire pour ne pas perdre de points sur cet axe. Concrètement, sur ce projet, trois pistes s'intègrent naturellement sans dénaturer le sujet :
+
+- **Mise en cache (LRU)** : la table de transposition est déjà une forme de cache — il suffit de lui donner une vraie politique de remplacement bornée (LRU ou équivalent) plutôt qu'une simple hash map non bornée, pour cocher explicitement cette case.
+- **Indexation SQL** : un livre d'ouvertures ou une base de parties déjà jouées, indexé par hash de position (Zobrist hashing), avec des requêtes prouvées via `EXPLAIN ANALYZE`.
+- **Protobuf / gRPC** : exposer le moteur comme un service (recevoir une position, renvoyer le meilleur coup), en binaire plutôt qu'en JSON — ou streamer l'avancement de la recherche.
+
+### Observation sur le langage (nouvelle donnée pour la décision encore ouverte)
+
+Les garde-fous d'exemple donnés pour le bonus `constitution.md` sont très spécifiquement **Go** : `fmt.Sprintf`, `goroutines`, conversions `string <-> []byte`, `sync.Pool`. Ça ne rend pas les autres langages invalides (J1_AM autorise explicitement "Go, Rust, C++, C#, Java, etc."), mais ça suggère que la matière du cours est probablement calibrée/illustrée en Go par défaut. À garder en tête pour la décision de langage ci-dessous — sans trancher pour autant.
+
 ## Mapping avec les leviers du cours
 
 | Levier du cours | Application sur ce projet |
@@ -40,7 +69,8 @@ Un moteur d'échecs capable de :
 | **Profiling** | Identifier le vrai Hot Path : génération de coups vs évaluation vs tri des coups (l'ordre de tri des coups impacte fortement l'efficacité de l'élagage) |
 | **Workers bornés / parallélisme** | Recherche parallèle sur plusieurs branches de l'arbre (ex: split au niveau racine, ou Lazy SMP) |
 | **Loi d'Amdahl** | Vérifier quelle portion (génération, éval, ou recherche) domine réellement avant de paralléliser — même piège que celui découvert en Séance 2 de HashBreaker |
-| **Streaming binaire / SQL** (optionnel, extension) | Exposer le moteur en service (gRPC) et/ou indexer une base de parties (Zobrist hashing) pour un livre d'ouvertures |
+| **Streaming binaire / SQL** (requis — axe 3 du barème, 5 pts) | Exposer le moteur en service (gRPC) et indexer une base de parties (Zobrist hashing) pour un livre d'ouvertures, avec preuve `EXPLAIN ANALYZE` |
+| **Mise en cache bornée (LRU)** (requis — axe 3 du barème) | Table de transposition avec politique de remplacement explicite, pas une hash map non bornée |
 
 ## Roadmap prévisionnelle (plan — rien n'est encore implémenté)
 
@@ -48,12 +78,16 @@ Calquée sur la progression suivie pour HashBreaker, à ajuster selon le calendr
 
 ```mermaid
 flowchart LR
-    A["Étape 1\nMise en place\nPlateau + génération de coups\n+ Minimax naïf + baseline"] --> B["Étape 2\nLocalité mémoire\nBitboards vs représentation objet"]
+    A["Étape 1\nMise en place\nPlateau + génération de coups\n+ Minimax naïf + baseline\n(Hyperfine, axe 1)"] --> B["Étape 2\nLocalité mémoire\nBitboards vs représentation objet"]
     B --> C["Étape 3\nZéro-allocation\nmake/unmake move"]
-    C --> D["Étape 4\nProfiling\nidentifier le vrai Hot Path"]
-    D --> E["Étape 5\nÉlagage Alpha-Beta\nmacro-optimisation"]
-    E --> F["Étape 6\nTable de transposition\nmémoïsation"]
-    F --> G["Étape 7\nRecherche parallèle\nworkers bornés"]
+    C --> D["Étape 4\nProfiling réel\nFlamegraph/pprof, Hot Path\n(axe 2)"]
+    D --> E["Étape 5\nÉlagage Alpha-Beta\nmacro-optimisation +\nearly cancellation"]
+    E --> F["Étape 6\nTable de transposition\nLRU bornée (axe 3)"]
+    F --> G["Étape 7\nRecherche parallèle\nworker pool + atomique (axe 3)"]
+    G --> H["Étape 8\nI/O & Persistance\nSQL indexé + gRPC (axe 3)"]
+    H --> I["Étape 9\nÉchec constructif\nexpérience ratée, chiffrée\n(axe 4)"]
+    I --> J["Étape 10\nReproductibilité\nscript one-shot + tableau\nfinal (axe 5)"]
+    J --> K["Étape 11\nRapport d'audit final\nconsolidé (PDF/MD)"]
 
     style A fill:#9e9e9e,color:#fff
     style B fill:#9e9e9e,color:#fff
@@ -62,17 +96,28 @@ flowchart LR
     style E fill:#9e9e9e,color:#fff
     style F fill:#9e9e9e,color:#fff
     style G fill:#9e9e9e,color:#fff
+    style H fill:#9e9e9e,color:#fff
+    style I fill:#9e9e9e,color:#fff
+    style J fill:#9e9e9e,color:#fff
+    style K fill:#9e9e9e,color:#fff
 ```
 
-Toutes les étapes sont **à réaliser** (grisées intentionnellement) — ce document sert de plan de route, pas de journal d'avancement. Un suivi détaillé (type `process/` et `syntheses/` de HashBreaker) sera mis en place dès le démarrage effectif du projet.
+Toutes les étapes sont **à réaliser** (grisées intentionnellement) — ce document sert de plan de route, pas de journal d'avancement. Un suivi détaillé (type `process/` et `syntheses/` de HashBreaker) sera mis en place dès le démarrage effectif du projet, en gardant à l'esprit que ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 11), puisque c'est ce document-là, et lui seul, qui sera noté.
 
-## Livrables attendus
+## Livrables attendus (alignés sur le barème)
 
-Identiques à l'exigence du module (cf. [README.md](README.md)) :
-- Code source versionné
-- Mesures de temps avant/après pour chaque levier appliqué
-- Profils d'exécution (Flamegraph / pprof ou équivalent selon le langage choisi)
-- Rapport d'audit comparatif
+| Livrable | Axe(s) du barème |
+|---|---|
+| Spécification du banc d'essai matériel (CPU, cœurs, cache, RAM, OS, runtime) | Axe 1 |
+| Protocole de mesure Hyperfine avec statistiques complètes (moyenne, médiane, écart-type, variance) | Axe 1 |
+| Captures Flamegraph/pprof réelles + identification textuelle du Hot Path | Axe 2 |
+| Journal d'optimisation justifié théoriquement et physiquement (mémoire/cache, concurrence, I/O/persistance) | Axe 3 |
+| Au moins une tentative d'optimisation ratée, documentée et chiffrée | Axe 4 |
+| Script d'automatisation exécutable en une commande (`Makefile` ou `run_benchmarks.sh`) | Axe 5 |
+| Tableau de synthèse final (Baseline vs Version finale, gains chiffrés) | Axe 5 |
+| **Rapport d'Audit final unique** (PDF ou Markdown propre) — seul document réellement noté | Toutes |
+| **Code source complet** (dépôt Git ou archive) — non noté directement, mais rendu obligatoire (confirmé par le formateur en live) comme preuve de reproductibilité | Pièce à conviction |
+| *(Bonus)* `constitution.md` à la racine, respectant les 4 directives | Bonus +2 |
 
 ## Décisions encore ouvertes
 
