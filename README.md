@@ -103,7 +103,7 @@ Objectif : initialiser le projet et obtenir une référence de performance avant
 
 - [x] Localité mémoire & lignes de cache (Séance 2 — terminée, cf. [syntheses/02-seance2-cpu-caches-localite-memoire.md](syntheses/02-seance2-cpu-caches-localite-memoire.md))
 - [x] Alignement mémoire & struct padding, zéro-allocation (Séance 3 — terminée, cf. [syntheses/03-seance3-memoire-zero-allocation.md](syntheses/03-seance3-memoire-zero-allocation.md))
-- [ ] Profiling (Flamegraph / pprof)
+- [ ] Métrologie & Profiling CPU / Flamegraph (Séance 4 — en cours, cf. [compréhension/comprendre-metrologie-profiling.md](compréhension/comprendre-metrologie-profiling.md))
 - [ ] Workers bornés (parallélisme multi-cœurs)
 - [ ] Streaming binaire gRPC
 - [ ] Indexation SQL
