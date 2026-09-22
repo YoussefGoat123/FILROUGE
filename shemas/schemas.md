@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (Séance 1, Séance 2 complète, Séance 3 en cours)
+# Schémas — État actuel du projet (Séance 1, Séance 2 complète, Séance 3 : 3/4 parties)
 
 Diagrammes Mermaid de ce qui a été produit jusqu'ici : structure du projet, code de `Main.java` et `Seance2LocaliteMemoire.java`, flux d'exécution et couverture des tests.
 
@@ -337,7 +337,46 @@ flowchart LR
 
 ---
 
-## 11. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java`)
+## 11. Séance 3 — Partie 3 : Buffers Fixes (Zéro-Allocation)
+
+`Seance3ZeroAllocation.java` corrige les 4 sources d'allocation identifiées en Partie 1, en ciblant `sha256()` en priorité (94% du problème).
+
+```mermaid
+flowchart TD
+    subgraph Avant["Version naive (Main.java)"]
+    direction TB
+    A1["String candidat = concat"] --> A2["MessageDigest.getInstance()\na chaque tentative"]
+    A2 --> A3["digest.digest(input)\nalloue un nouveau byte[] a chaque appel"]
+    A3 --> A4["hash converti en String hex\npour comparaison"]
+    end
+    subgraph Apres["Version zero-allocation"]
+    direction TB
+    B1["byte[] candidatBuffer\nmute par indice"] --> B2["1 seule instance\nMessageDigest, reutilisee"]
+    B2 --> B3["digest.digest(hashBuffer, 0, len)\necrit dans un buffer reutilise"]
+    B3 --> B4["MessageDigest.isEqual(byte[], byte[])\ncomparaison directe"]
+    end
+
+    style Avant fill:#c62828,color:#fff
+    style Apres fill:#2e7d32,color:#fff
+```
+
+### Résultat mesuré
+
+```mermaid
+xychart-beta
+    title "Temps de resolution de Sh3n (ms)"
+    x-axis ["Naif (baseline)", "Zero-allocation"]
+    y-axis "Temps (ms)" 0 --> 11000
+    bar [10536, 2803]
+```
+
+**Gain mesuré : ~x3,76** sur `Sh3n` (10 536 ms → 2 803 ms), sans changer l'algorithme de force brute lui-même — uniquement la gestion mémoire. `z3D` : 594 ms → 236 ms.
+
+> La conversion hexadécimale n'a plus lieu que **si le mot de passe est trouvé** (une seule fois, hors boucle chaude) — plus jamais à chaque tentative. Détails : [process/10-seance3-partie3-buffers-fixes.md](../process/10-seance3-partie3-buffers-fixes.md).
+
+---
+
+## 12. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java` + `Seance3ZeroAllocationTest.java`)
 
 ```mermaid
 graph LR
@@ -373,13 +412,21 @@ graph LR
         T23["hash du tableau : valeur exacte"]
         T24["hachage tableau == hachage liste"]
     end
+    subgraph "Seance3ZeroAllocationTest - 6 tests"
+        T25["hexVersOctets : conversion correcte"]
+        T26["hexVersOctets : taille 32 octets"]
+        T27["remplirCandidat : buffer [0,0,0] → 'aaa'"]
+        T28["remplirCandidat : indices z,3,D → 'z3D'"]
+        T29["remplirCandidat : reutilisation du buffer"]
+        T30["coherence avec le hash de Main.sha256()"]
+    end
 ```
 
-**Résultat actuel : 24/24 tests passent.**
+**Résultat actuel : 30/30 tests passent.**
 
 ---
 
-## 12. Baseline mesurée — z3D vs Sh3n
+## 13. Baseline mesurée — z3D vs Sh3n
 
 ```mermaid
 xychart-beta
@@ -393,7 +440,7 @@ L'espace de recherche est ~62x plus grand pour `Sh3n` (un caractère de plus) et
 
 ---
 
-## 13. Où on en est dans le TP
+## 14. Où on en est dans le TP
 
 ```mermaid
 flowchart LR
@@ -405,8 +452,9 @@ flowchart LR
     F --> G["✅ Séance 2 Partie 4\nValidation (verdict: pas de gain,\nAmdahl confirmé sur 10 essais)"]
     G --> H["✅ Séance 3 Partie 1\nDiagnostic JFR\n(sha256() = ~94% des allocations)"]
     H --> I["✅ Séance 3 Partie 2\nPadding (JOL) :\naucun effet en Java (JVM reordonne deja)"]
-    I --> J["⬜ Séance 3 Partie 3-4\nBuffers fixes,\nvalidation 0 allocs/op"]
-    J --> K["⬜ Séances suivantes :\nprofiling, workers, gRPC, SQL"]
+    I --> J["✅ Séance 3 Partie 3\nBuffers fixes :\nSh3n 10536ms → 2803ms (x3,76)"]
+    J --> K["⬜ Séance 3 Partie 4\nValidation 0 allocs/op (JFR)"]
+    K --> L["⬜ Séances suivantes :\nprofiling, workers, gRPC, SQL"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
@@ -417,8 +465,9 @@ flowchart LR
     style G fill:#2e7d32,color:#fff
     style H fill:#2e7d32,color:#fff
     style I fill:#2e7d32,color:#fff
-    style J fill:#f9a825,color:#000
-    style K fill:#9e9e9e,color:#fff
+    style J fill:#2e7d32,color:#fff
+    style K fill:#f9a825,color:#000
+    style L fill:#9e9e9e,color:#fff
 ```
 
-**Séance 2 terminée. Séance 3 (Zéro-Allocation & Struct Padding) en cours.**
+**Séance 2 terminée. Séance 3 (Zéro-Allocation & Struct Padding) en cours — plus qu'une partie (validation 0 allocs/op).**

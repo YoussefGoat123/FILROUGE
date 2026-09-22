@@ -17,6 +17,7 @@ Mis à jour à chaque modification significative du projet — un fichier par é
 | 07 | [Validation de la sympathie matérielle](07-seance2-partie4-validation-sympathie-materielle.md) | Séance 2 — Partie 4 | ✅ |
 | 08 | [Diagnostic Escape Analysis (JFR)](08-seance3-partie1-diagnostic-escape-analysis.md) | Séance 3 — Partie 1 | ✅ |
 | 09 | [Compactage de structure / Padding (JOL)](09-seance3-partie2-padding.md) | Séance 3 — Partie 2 | ✅ |
+| 10 | [Buffers fixes / Zéro-allocation](10-seance3-partie3-buffers-fixes.md) | Séance 3 — Partie 3 | ✅ |
 
 ## Voir aussi
 
