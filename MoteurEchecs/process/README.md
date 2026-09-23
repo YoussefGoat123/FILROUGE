@@ -9,6 +9,7 @@ Même méthodologie que le TP fil rouge HashBreaker (`../../process/`) : un fich
 | 01 | [Architecture & Algorithme Naïf](01-architecture-et-algorithme-naif.md) | ✅ |
 | 02 | [Élagage Alpha-Beta (macro)](02-elagage-alpha-beta.md) | ✅ |
 | 03 | [Localité mémoire : Bitboards (micro)](03-localite-memoire-bitboards.md) | ✅ |
+| 04 | [Zéro-allocation : caseAttaquee() + Make/Unmake (micro)](04-zero-allocation-caseattaquee-et-makeunmake.md) | ✅ |
 
 ## Voir aussi
 

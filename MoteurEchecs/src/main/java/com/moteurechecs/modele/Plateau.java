@@ -1,18 +1,30 @@
 package com.moteurechecs.modele;
 
 /**
- * Representation naive du plateau : une grille 8x8 d'objets Piece (ou null).
+ * Representation du plateau : une grille 8x8 d'objets Piece (ou null).
  *
- * jouerCoup() retourne un NOUVEAU Plateau (copie complete + coup applique),
- * plutot que de muter en place (pattern make/unmake). C'est volontairement
- * naif -- exactement le meme choix que la concatenation de String en
- * Seance 1 de HashBreaker -- et sera corrige lors du futur creneau
- * zero-allocation (equivalent Seance 3).
+ * Etape 4 (zero-allocation) : deux facons de jouer un coup coexistent
+ * volontairement, pour deux usages differents -- ce n'est pas "deux
+ * versions" de l'optimisation, une seule reste utilisee dans le chemin
+ * chaud :
+ *
+ *   - jouerCoup(coup)      : copie complete de la grille, renvoie un NOUVEAU
+ *                            Plateau. Pratique et lisible pour les tests et
+ *                            la mise en place de positions. Plus utilise
+ *                            dans la recherche (retire du chemin chaud).
+ *
+ *   - jouer(coup)/annuler(...) : MUTE ce Plateau en place (pattern
+ *                            make/unmake), une seule instance reutilisee
+ *                            pour tout l'arbre de recherche. C'est le
+ *                            chemin utilise par GenerateurCoups et
+ *                            MinimaxAlphaBeta -- equivalent chess du
+ *                            "buffer fixe reutilise, mutation directe
+ *                            d'index" du cours J2_AM.
  */
 public class Plateau {
 
     private final Piece[][] cases; // [ligne][colonne], ligne 0 = rangee 1, colonne 0 = colonne a
-    private final Couleur trait;
+    private Couleur trait;
 
     private Plateau(Piece[][] cases, Couleur trait) {
         this.cases = cases;
@@ -48,7 +60,8 @@ public class Plateau {
         return trait;
     }
 
-    // applique un coup et renvoie un nouveau plateau (copie complete de la grille)
+    // copie complete de la grille + coup applique -- pour les tests et la mise en place de positions.
+    // PAS utilise dans le chemin chaud de la recherche (voir jouer()/annuler() ci-dessous).
     public Plateau jouerCoup(Coup coup) {
         Piece[][] nouvelleGrille = new Piece[8][8];
         for (int ligne = 0; ligne < 8; ligne++) {
@@ -65,6 +78,33 @@ public class Plateau {
         nouvelleGrille[coup.ligneDepart()][coup.colonneDepart()] = null;
 
         return new Plateau(nouvelleGrille, trait.adverse());
+    }
+
+    // information necessaire pour annuler un coup joue avec jouer() -- petit record,
+    // sans commune mesure avec la copie complete d'une grille 8x8
+    public record InfoAnnulation(Piece pieceOriginale, Piece pieceCapturee) {}
+
+    // MUTE ce plateau en place (chemin chaud de la recherche). Renvoie l'info pour annuler().
+    public InfoAnnulation jouer(Coup coup) {
+        Piece pieceOriginale = cases[coup.ligneDepart()][coup.colonneDepart()];
+        Piece pieceCapturee = cases[coup.ligneArrivee()][coup.colonneArrivee()];
+
+        Piece pieceFinale = (coup.promotion() != null)
+                ? new Piece(pieceOriginale.couleur(), coup.promotion())
+                : pieceOriginale;
+
+        cases[coup.ligneArrivee()][coup.colonneArrivee()] = pieceFinale;
+        cases[coup.ligneDepart()][coup.colonneDepart()] = null;
+        trait = trait.adverse();
+
+        return new InfoAnnulation(pieceOriginale, pieceCapturee);
+    }
+
+    // annule le coup joue par jouer() -- remet le plateau EXACTEMENT dans l'etat d'avant
+    public void annuler(Coup coup, InfoAnnulation info) {
+        cases[coup.ligneDepart()][coup.colonneDepart()] = info.pieceOriginale();
+        cases[coup.ligneArrivee()][coup.colonneArrivee()] = info.pieceCapturee();
+        trait = trait.adverse();
     }
 
     // trouve la case du roi d'une couleur donnee (utilise par la detection d'echec)

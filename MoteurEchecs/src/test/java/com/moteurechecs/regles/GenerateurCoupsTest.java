@@ -1,5 +1,6 @@
 package com.moteurechecs.regles;
 
+import com.moteurechecs.modele.Couleur;
 import com.moteurechecs.modele.Coup;
 import com.moteurechecs.modele.Plateau;
 import org.junit.jupiter.api.Test;
@@ -73,5 +74,54 @@ class GenerateurCoupsTest {
 
         assertTrue(GenerateurCoups.roiEnEchec(plateau, com.moteurechecs.modele.Couleur.BLANC));
         assertTrue(GenerateurCoups.coupsLegaux(plateau).isEmpty(), "aucun coup legal : c'est bien mat, pas juste echec");
+    }
+
+    // ---- caseAttaquee() -- tests directs de la version reecrite (Etape 4) ----
+
+    @Test
+    void caseAttaquee_cavalierAttaqueUneCaseEnL() {
+        // cavalier blanc en b1 (0,1) attaque a3 (2,0) et c3 (2,2)
+        Plateau plateau = Plateau.positionDepart();
+        assertTrue(GenerateurCoups.caseAttaquee(plateau, 2, 0, Couleur.BLANC));
+        assertTrue(GenerateurCoups.caseAttaquee(plateau, 2, 2, Couleur.BLANC));
+    }
+
+    @Test
+    void caseAttaquee_pionAttaqueEnDiagonale() {
+        // pion blanc en e2 (1,4) attaque d3 (2,3) et f3 (2,5)
+        Plateau plateau = Plateau.positionDepart();
+        assertTrue(GenerateurCoups.caseAttaquee(plateau, 2, 3, Couleur.BLANC));
+        assertTrue(GenerateurCoups.caseAttaquee(plateau, 2, 5, Couleur.BLANC));
+    }
+
+    @Test
+    void caseAttaquee_avanceToutDroitNestPasUneAttaque() {
+        // e4 (3,4) n'est pas attaquee par les Blancs en position de depart : aucun pion
+        // (l'avance tout droit du pion e2 n'est pas une "attaque"), aucun cavalier n'y arrive
+        Plateau plateau = Plateau.positionDepart();
+        assertFalse(GenerateurCoups.caseAttaquee(plateau, 3, 4, Couleur.BLANC));
+    }
+
+    @Test
+    void caseAttaquee_tourGlissanteBloqueeParUnePiece() {
+        // tour blanche en a1 (0,0) : bloquee par son propre pion en a2 (1,0), n'attaque pas plus loin
+        Plateau plateau = Plateau.positionDepart();
+        assertFalse(GenerateurCoups.caseAttaquee(plateau, 3, 0, Couleur.BLANC), "la tour ne doit pas voir au-dela de son propre pion");
+    }
+
+    @Test
+    void caseAttaquee_tourGlissanteApresDegagement_attaqueEnLigneDroite() {
+        // on retire le pion a2 "a la main" via deux jouerCoup pour degager la colonne a
+        Plateau plateau = Plateau.positionDepart();
+        plateau = plateau.jouerCoup(new Coup(1, 0, 3, 0)); // a2-a4 (degage la colonne)
+
+        assertTrue(GenerateurCoups.caseAttaquee(plateau, 2, 0, Couleur.BLANC), "la tour a1 doit maintenant attaquer a3");
+    }
+
+    @Test
+    void caseAttaquee_caseVideNonAttaqueeEnPositionDeDepart() {
+        Plateau plateau = Plateau.positionDepart();
+        assertFalse(GenerateurCoups.caseAttaquee(plateau, 4, 4, Couleur.BLANC));
+        assertFalse(GenerateurCoups.caseAttaquee(plateau, 4, 4, Couleur.NOIR));
     }
 }

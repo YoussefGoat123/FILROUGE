@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (Étape 1 : Naïf, Étape 2 : Alpha-Beta)
+# Schémas — État actuel du projet (Étapes 1 à 4)
 
 Diagrammes Mermaid de l'architecture et du fonctionnement du moteur. Même conventions que HashBreaker (`../../shemas/schemas.md`).
 
@@ -128,36 +128,47 @@ flowchart TD
 
 ```mermaid
 graph LR
-    subgraph "PlateauTest - 8 tests"
+    subgraph "PlateauTest - 14 tests"
         T1["placement initial des pieces"]
         T2["jouerCoup deplace + libere la case"]
-        T3["immutabilite du plateau original"]
+        T3["immutabilite de jouerCoup"]
+        T4["jouer/annuler : deplace + restaure"]
+        T5["annuler restaure une piece capturee"]
+        T6["100 cycles jouer/annuler sans corruption"]
+        T7["jouer et jouerCoup coherents entre eux"]
     end
-    subgraph "GenerateurCoupsTest - 6 tests"
-        T4["perft(1) == 20 depuis le depart"]
-        T5["pion : avance simple + double"]
-        T6["cavalier saute par-dessus les pions"]
-        T7["mat du fou : echec + 0 coup legal"]
+    subgraph "GenerateurCoupsTest - 12 tests"
+        T8["perft(1) == 20 depuis le depart"]
+        T9["pion : avance simple + double"]
+        T10["cavalier saute par-dessus les pions"]
+        T11["mat du fou : echec + 0 coup legal"]
+        T12["caseAttaquee : cavalier, pion, glissante"]
+        T13["caseAttaquee : bloquee vs debloquee"]
     end
     subgraph "EvaluateurTest - 2 tests"
-        T8["position de depart : score nul"]
-        T9["perte de dame : score deseequilibre"]
+        T14["position de depart : score nul"]
+        T15["perte de dame : score deseequilibre"]
     end
     subgraph "MinimaxTest - 3 tests"
-        T10["coup choisi fait partie des coups legaux"]
-        T11["mat en 1 trouve meme a profondeur 1"]
-        T12["positions evaluees croit avec la profondeur"]
+        T16["coup choisi fait partie des coups legaux"]
+        T17["mat en 1 trouve meme a profondeur 1"]
+        T18["positions evaluees croit avec la profondeur"]
     end
     subgraph "MinimaxAlphaBetaTest - 5 tests"
-        T13["coup choisi fait partie des coups legaux"]
-        T14["mat en 1 trouve meme a profondeur 1"]
-        T15["meme coup que Minimax pur (position depart)"]
-        T16["meme coup que Minimax pur (apres quelques coups)"]
-        T17["visite strictement moins de positions"]
+        T19["equivalence avec Minimax pur (2 tests)"]
+        T20["mat en 1, coups legaux"]
+        T21["visite strictement moins de positions"]
+    end
+    subgraph "PlateauBitsTest - 8 tests"
+        T22["placement initial, coherence avec Plateau"]
+        T23["occupationCouleur, jouerCoup, capture"]
+    end
+    subgraph "EtapeLocaliteMemoireTest - 3 tests"
+        T24["memes checksums objets vs bitboards"]
     end
 ```
 
-**Résultat actuel : 24/24 tests passent.**
+**Résultat actuel : 47/47 tests passent.**
 
 ---
 
@@ -229,16 +240,61 @@ xychart-beta
 
 ---
 
-## 9. Où on en est
+## 9. Étape 4 : Zéro-allocation — `caseAttaquee()` directe + Make/Unmake
+
+Diagnostic JFR (profondeur 5) avant toute correction : le coupable principal n'était **pas** la copie de `Plateau` supposée, mais `caseAttaquee()` qui régénérait toute la liste de coups pour vérifier une seule case.
+
+```mermaid
+xychart-beta
+    title "Repartition des allocations AVANT correction (600 echantillons)"
+    x-axis ["caseAttaquee()", "coupsPseudoLegaux()", "coupsLegaux()", "jouerCoup() (copie grille)"]
+    y-axis "Echantillons" 0 --> 250
+    bar [240, 189, 152, 152]
+```
+
+**Deux corrections de nature différente** (une seule version du code, modifiée en place — pas de classe parallèle) :
+
+```mermaid
+flowchart LR
+    C1["caseAttaquee() reecrite\nteste chaque pattern directement\n-> PAS un buffer, elimination du besoin"]
+    C2["Plateau.jouer()/annuler()\nmake/unmake en place\n-> VRAI buffer reutilise (principe du cours)"]
+
+    style C1 fill:#f9a825,color:#000
+    style C2 fill:#2e7d32,color:#fff
+```
+
+### Impact mesuré
+
+```mermaid
+xychart-beta
+    title "Allocations et cycles GC : avant vs apres"
+    x-axis ["Echantillons d'allocation", "Cycles Young GC"]
+    y-axis "Nombre" 0 --> 600
+    bar [600, 25]
+    bar [120, 2]
+```
+
+| Mesure | Avant | Après | Facteur |
+|---|---|---|---|
+| Temps (Hyperfine, 5 essais) | 1,999 s ± 0,058 s | 475,3 ms ± 37,8 ms | **×4,2** |
+| Échantillons d'allocation | 600 | 120 | ÷5 |
+| Cycles Young GC | 25 | 2 | ÷12,5 |
+
+Même coup trouvé (`b2b3`) avant/après, tests d'équivalence avec `Minimax` pur toujours au vert. Détails : [process/04-zero-allocation-caseattaquee-et-makeunmake.md](../process/04-zero-allocation-caseattaquee-et-makeunmake.md).
+
+---
+
+## 10. Où on en est
 
 ```mermaid
 flowchart LR
     A["✅ Architecture par packages\n(modele/regles/evaluation/recherche)"] --> B["✅ Algorithme naif\n(Minimax complet, sans elagage)"]
-    B --> C["✅ Validation\n(perft=20, mat du fou, 19/19 tests)"]
+    B --> C["✅ Validation\n(perft=20, mat du fou)"]
     C --> D["✅ Baseline mesuree\n(~22-24K positions/s)"]
     D --> E["✅ Elagage Alpha-Beta (macro)\n÷145,9 positions a profondeur 4"]
-    E --> EE["✅ Localite memoire (micro)\nBitboards : x1,3 (mecanisme different de HashBreaker)"]
-    EE --> F["⬜ Prochains leviers :\nzero-allocation (make/unmake),\nprofiling, workers,\nI/O & persistance"]
+    E --> EE["✅ Localite memoire (micro)\nBitboards : x1,3"]
+    EE --> ZA["✅ Zero-allocation (micro)\ncaseAttaquee directe + make/unmake\nx4,2, allocations ÷5"]
+    ZA --> F["⬜ Prochains leviers :\nreutilisation des listes de Coup,\nprofiling, workers,\nI/O & persistance"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
@@ -246,5 +302,6 @@ flowchart LR
     style D fill:#2e7d32,color:#fff
     style EE fill:#2e7d32,color:#fff
     style E fill:#2e7d32,color:#fff
+    style ZA fill:#2e7d32,color:#fff
     style F fill:#9e9e9e,color:#fff
 ```

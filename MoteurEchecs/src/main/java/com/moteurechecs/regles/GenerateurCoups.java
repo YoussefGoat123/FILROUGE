@@ -10,13 +10,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Generation de coups - version naive V1.
+ * Generation de coups.
  *
  * Perimetre volontairement simplifie (decision actee) : PAS de roque, PAS de
  * prise en passant. Promotion geree, mais automatiquement en Dame (pas de
- * choix de sous-promotion). A completer dans une iteration ulterieure si
- * necessaire -- l'objectif de cette V1 est "Make it work" avant "Make it
- * fast", exactement comme la Seance 1 de HashBreaker.
+ * choix de sous-promotion).
+ *
+ * Etape 4 (zero-allocation) : deux corrections apportees suite a un
+ * diagnostic JFR qui a revele que le vrai goulot n'etait ni celui suppose --
+ * voir process/04-zero-allocation-caseattaquee-et-makeunmake.md pour le
+ * detail complet du diagnostic.
+ *
+ *   1. caseAttaquee() teste desormais DIRECTEMENT les patterns d'attaque
+ *      (pion, cavalier, roi, glissantes) contre la case ciblee, au lieu de
+ *      generer la liste complete des coups pseudo-legaux d'une couleur pour
+ *      n'en garder qu'un match -- zero Coup, zero List alloues pour cette
+ *      operation (elimination du besoin, pas reutilisation de buffer).
+ *
+ *   2. coupsLegaux() utilise desormais jouer()/annuler() (make/unmake) au
+ *      lieu de jouerCoup() (copie de grille) pour son filtrage -- vrai
+ *      "buffer fixe reutilise, mutation directe d'index" au sens du cours.
  */
 public class GenerateurCoups {
 
@@ -29,16 +42,20 @@ public class GenerateurCoups {
             {2, 1}, {2, -1}, {-2, 1}, {-2, -1}, {1, 2}, {1, -2}, {-1, 2}, {-1, -2}
     };
 
-    // coups legaux : coups pseudo-legaux qui ne laissent pas son propre roi en echec
+    // coups legaux : coups pseudo-legaux qui ne laissent pas son propre roi en echec.
+    // utilise jouer()/annuler() (make/unmake) : une seule instance de Plateau mutee et restauree,
+    // au lieu d'une copie de grille par coup teste.
     public static List<Coup> coupsLegaux(Plateau plateau) {
-        List<Coup> pseudoLegaux = coupsPseudoLegaux(plateau, plateau.trait());
+        Couleur joueur = plateau.trait();
+        List<Coup> pseudoLegaux = coupsPseudoLegaux(plateau, joueur);
         List<Coup> legaux = new ArrayList<>();
 
         for (Coup coup : pseudoLegaux) {
-            Plateau apres = plateau.jouerCoup(coup);
-            if (!roiEnEchec(apres, plateau.trait())) {
+            Plateau.InfoAnnulation info = plateau.jouer(coup);
+            if (!roiEnEchec(plateau, joueur)) {
                 legaux.add(coup);
             }
+            plateau.annuler(coup, info);
         }
 
         return legaux;
@@ -49,11 +66,69 @@ public class GenerateurCoups {
         return caseAttaquee(plateau, positionRoi[0], positionRoi[1], couleur.adverse());
     }
 
-    // vrai si une piece de 'parCouleur' peut atteindre (ligne, colonne) en un coup pseudo-legal
+    // vrai si une piece de 'parCouleur' attaque directement (ligne, colonne).
+    // teste chaque pattern d'attaque un par un, sans jamais generer de liste de coups.
     static boolean caseAttaquee(Plateau plateau, int ligne, int colonne, Couleur parCouleur) {
-        for (Coup coup : coupsPseudoLegaux(plateau, parCouleur)) {
-            if (coup.ligneArrivee() == ligne && coup.colonneArrivee() == colonne) {
+        if (attaquePion(plateau, ligne, colonne, parCouleur)) {
+            return true;
+        }
+        if (attaqueParSaut(plateau, ligne, colonne, parCouleur, SAUTS_CAVALIER, TypePiece.CAVALIER)) {
+            return true;
+        }
+        if (attaqueParSaut(plateau, ligne, colonne, parCouleur, DIRECTIONS_DAME_ROI, TypePiece.ROI)) {
+            return true;
+        }
+        if (attaqueGlissante(plateau, ligne, colonne, parCouleur, DIRECTIONS_FOU, TypePiece.FOU)) {
+            return true;
+        }
+        if (attaqueGlissante(plateau, ligne, colonne, parCouleur, DIRECTIONS_TOUR, TypePiece.TOUR)) {
+            return true;
+        }
+        return attaqueGlissante(plateau, ligne, colonne, parCouleur, DIRECTIONS_DAME_ROI, TypePiece.DAME);
+    }
+
+    // un pion de parCouleur attaque en diagonale avant -- donc l'attaquant potentiel
+    // se trouve en diagonale ARRIERE de la case ciblee, vue depuis parCouleur
+    private static boolean attaquePion(Plateau plateau, int ligne, int colonne, Couleur parCouleur) {
+        int direction = (parCouleur == Couleur.BLANC) ? 1 : -1;
+        int ligneAttaquant = ligne - direction;
+
+        for (int deltaColonne : new int[]{-1, 1}) {
+            Piece piece = plateau.pieceEn(ligneAttaquant, colonne + deltaColonne);
+            if (piece != null && piece.couleur() == parCouleur && piece.type() == TypePiece.PION) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    // cavalier ou roi : vrai si une piece du type donne est a l'un des sauts/pas depuis (ligne, colonne)
+    private static boolean attaqueParSaut(Plateau plateau, int ligne, int colonne, Couleur parCouleur, int[][] sauts, TypePiece type) {
+        for (int[] saut : sauts) {
+            Piece piece = plateau.pieceEn(ligne + saut[0], colonne + saut[1]);
+            if (piece != null && piece.couleur() == parCouleur && piece.type() == type) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // fou/tour/dame : glisse dans chaque direction jusqu'a une piece ; attaque si c'est le bon type/couleur
+    private static boolean attaqueGlissante(Plateau plateau, int ligne, int colonne, Couleur parCouleur, int[][] directions, TypePiece type) {
+        for (int[] direction : directions) {
+            int l = ligne + direction[0];
+            int c = colonne + direction[1];
+
+            while (estDansPlateau(l, c)) {
+                Piece piece = plateau.pieceEn(l, c);
+                if (piece != null) {
+                    if (piece.couleur() == parCouleur && piece.type() == type) {
+                        return true;
+                    }
+                    break; // bloque par une piece (alliee ou adverse) : on arrete cette direction
+                }
+                l += direction[0];
+                c += direction[1];
             }
         }
         return false;

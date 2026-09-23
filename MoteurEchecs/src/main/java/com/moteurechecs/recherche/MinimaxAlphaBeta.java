@@ -9,17 +9,14 @@ import com.moteurechecs.regles.GenerateurCoups;
 import java.util.List;
 
 /**
- * Etape 2 (MACRO-optimisation) : Minimax + elagage Alpha-Beta.
+ * Etape 2 (MACRO) : elagage Alpha-Beta. Etape 4 (MICRO, zero-allocation) :
+ * recherche menee via jouer()/annuler() (make/unmake) -- une seule instance
+ * de Plateau reutilisee pour tout l'arbre, au lieu d'un nouveau Plateau
+ * (copie de grille) a chaque noeud.
  *
- * Coupe les branches de l'arbre qui ne peuvent mathematiquement pas
- * influencer la decision finale -- reduit la complexite de O(b^d) a environ
- * O(b^(d/2)) dans le meilleur cas. Mathematiquement EQUIVALENT a Minimax pur
- * (memes scores, memes coups choisis), juste moins de positions visitees.
- *
- * Limite assumee pour cette V2 : aucun tri des coups (move ordering). L'ordre
- * de parcours est celui de GenerateurCoups (scan du plateau), pas encore
- * optimise pour maximiser les coupures -- amelioration possible plus tard
- * (ex: MVV-LVA, tester les captures en premier).
+ * Mathematiquement equivalent a Minimax pur (memes scores, memes coups
+ * choisis) -- valide par tests. Limite assumee : aucun tri des coups (move
+ * ordering), amelioration possible plus tard.
  */
 public class MinimaxAlphaBeta {
 
@@ -41,11 +38,10 @@ public class MinimaxAlphaBeta {
         int beta = Integer.MAX_VALUE;
         int meilleurScore = (joueur == Couleur.BLANC) ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
-        // pas de coupure au niveau racine : il faut comparer tous les coups pour choisir le meilleur,
-        // mais alpha/beta se resserrent progressivement pour couper plus tot dans les sous-arbres suivants
         for (Coup coup : coups) {
-            Plateau apres = plateau.jouerCoup(coup);
-            int score = alphabeta(apres, profondeur - 1, alpha, beta);
+            Plateau.InfoAnnulation info = plateau.jouer(coup);
+            int score = alphabeta(plateau, profondeur - 1, alpha, beta);
+            plateau.annuler(coup, info);
 
             boolean meilleur = (joueur == Couleur.BLANC) ? (score > meilleurScore) : (score < meilleurScore);
             if (meilleur) {
@@ -83,22 +79,28 @@ public class MinimaxAlphaBeta {
         if (plateau.trait() == Couleur.BLANC) {
             int max = Integer.MIN_VALUE;
             for (Coup coup : coups) {
-                int score = alphabeta(plateau.jouerCoup(coup), profondeur - 1, alpha, beta);
+                Plateau.InfoAnnulation info = plateau.jouer(coup);
+                int score = alphabeta(plateau, profondeur - 1, alpha, beta);
+                plateau.annuler(coup, info);
+
                 max = Math.max(max, score);
                 alpha = Math.max(alpha, max);
                 if (alpha >= beta) {
-                    break; // coupure beta : les Noirs ont deja mieux ailleurs, inutile de continuer ici
+                    break; // coupure beta
                 }
             }
             return max;
         } else {
             int min = Integer.MAX_VALUE;
             for (Coup coup : coups) {
-                int score = alphabeta(plateau.jouerCoup(coup), profondeur - 1, alpha, beta);
+                Plateau.InfoAnnulation info = plateau.jouer(coup);
+                int score = alphabeta(plateau, profondeur - 1, alpha, beta);
+                plateau.annuler(coup, info);
+
                 min = Math.min(min, score);
                 beta = Math.min(beta, min);
                 if (beta <= alpha) {
-                    break; // coupure alpha : les Blancs ont deja mieux ailleurs, inutile de continuer ici
+                    break; // coupure alpha
                 }
             }
             return min;
