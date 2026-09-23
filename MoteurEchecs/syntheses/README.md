@@ -20,3 +20,4 @@ Chaque fichier doit être **autonome** (pas seulement un lien vers `shemas/`) et
 | 04 | Zéro-allocation : caseAttaquee() + Make/Unmake (micro) | [04-zero-allocation.md](04-zero-allocation.md) |
 | 05 | Struct Padding / Alignement (JOL) | [05-struct-padding.md](05-struct-padding.md) |
 | 06 | Pré-allocation de capacité (listes de Coup) | [06-preallocation.md](06-preallocation.md) |
+| 07 | Profiling réel & Hot Path (Axe 2) | [07-profiling-reel.md](07-profiling-reel.md) |

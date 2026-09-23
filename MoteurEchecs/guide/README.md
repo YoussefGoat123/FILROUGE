@@ -44,6 +44,7 @@ Ces classes ont leur propre `main()`, indépendant de `Main.java` :
 |---|---|---|
 | `experimentation.EtapeLocaliteMemoire` | Compare `Plateau` (objets) vs `PlateauBits` (bitboards) sur l'énumération de cases occupées | `java -cp target/classes com.moteurechecs.experimentation.EtapeLocaliteMemoire` |
 | `experimentation.DiagnosticAllocations` | Lance `MinimaxAlphaBeta` seul à profondeur 5 — pensé pour être exécuté sous JFR (voir ci-dessous) | `java -cp target/classes com.moteurechecs.experimentation.DiagnosticAllocations` |
+| `experimentation.DiagnosticProfilingReel` | Lance `MinimaxAlphaBeta` seul à profondeur 6 (~2 s) — fenêtre plus longue, pensée pour le profiling CPU (Étape 7, Hot Path) | `java -cp target/classes com.moteurechecs.experimentation.DiagnosticProfilingReel` |
 
 ## Profiler avec JFR (allocations + CPU)
 
@@ -87,6 +88,7 @@ Puis pointer Hyperfine vers ce lanceur plutôt que directement vers `scripts\run
 |---|---|
 | `run-main.cmd` | `Main.java` (comparaison naïf vs Alpha-Beta) |
 | `run-diagnostic-allocations.cmd` | `DiagnosticAllocations` (Alpha-Beta seul, profondeur 5 — pour profiling/Hyperfine) |
+| `run-diagnostic-profiling-reel.cmd` | `DiagnosticProfilingReel` (Alpha-Beta seul, profondeur 6 — pour profiling CPU/Flamegraph) |
 | `run-etape-localite-memoire.cmd` | `EtapeLocaliteMemoire` (comparaison objets vs bitboards) |
 
 Tous supposent `JAVA_HOME` défini et `target/classes` déjà compilé (`mvn -q compile` d'abord).
