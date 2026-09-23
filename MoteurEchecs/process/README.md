@@ -7,6 +7,7 @@ Même méthodologie que le TP fil rouge HashBreaker (`../../process/`) : un fich
 | # | Étape | Statut |
 |---|---|---|
 | 01 | [Architecture & Algorithme Naïf](01-architecture-et-algorithme-naif.md) | ✅ |
+| 02 | [Élagage Alpha-Beta (macro)](02-elagage-alpha-beta.md) | ✅ |
 
 ## Voir aussi
 

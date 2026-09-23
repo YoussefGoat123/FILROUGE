@@ -15,3 +15,4 @@ Chaque fichier doit être **autonome** (pas seulement un lien vers `shemas/`) et
 | # | Étape | Synthèse |
 |---|---|---|
 | 01 | Architecture & Algorithme Naïf | [01-architecture-naive.md](01-architecture-naive.md) |
+| 02 | Élagage Alpha-Beta (macro) | [02-elagage-alpha-beta.md](02-elagage-alpha-beta.md) |

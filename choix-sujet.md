@@ -72,17 +72,19 @@ Les garde-fous d'exemple donnés pour le bonus `constitution.md` sont très spé
 | **Streaming binaire / SQL** (requis — axe 3 du barème, 5 pts) | Exposer le moteur en service (gRPC) et indexer une base de parties (Zobrist hashing) pour un livre d'ouvertures, avec preuve `EXPLAIN ANALYZE` |
 | **Mise en cache bornée (LRU)** (requis — axe 3 du barème) | Table de transposition avec politique de remplacement explicite, pas une hash map non bornée |
 
-## Roadmap prévisionnelle (plan — rien n'est encore implémenté)
+## Roadmap (mise à jour au fil de l'avancement réel)
 
-Calquée sur la progression suivie pour HashBreaker, à ajuster selon le calendrier réel des séances à venir.
+> 🔄 **Réordonnée le 2026-09-23** : la macro-optimisation (élagage alpha-beta) est passée avant les micro-optimisations mémoire, décision volontaire — voir justification ci-dessous.
+
+**Pourquoi la macro d'abord ?** Sur un moteur d'échecs, l'explosion combinatoire de l'arbre de recherche (O(b^d)) est le facteur dominant — bien plus déterminant que n'importe quel gain constant de micro-optimisation, même principe que la loi d'Amdahl vue en Séance 2 de HashBreaker. Ça ne bloque pas les micro-optimisations prévues ensuite : l'architecture les sépare déjà proprement (alpha-beta touche uniquement `recherche/`, bitboards et zéro-allocation toucheront `modele/`). Seule conséquence à documenter : la baseline de l'Étape 1 (Minimax naïf) n'est plus la référence directe pour les micro-optimisations à venir — l'alpha-beta devient la nouvelle référence, car il ne fait pas "le même travail plus vite" mais "moins de travail" (nombre de positions visitées différent, pas juste un temps d'exécution différent).
 
 ```mermaid
 flowchart LR
-    A["✅ Étape 1\nMise en place\nPlateau + génération de coups\n+ Minimax naïf + baseline\n(~22-24K positions/s)"] --> B["⬜ Étape 2\nLocalité mémoire\nBitboards vs représentation objet"]
-    B --> C["⬜ Étape 3\nZéro-allocation\nmake/unmake move"]
-    C --> D["⬜ Étape 4\nProfiling réel\nFlamegraph/pprof, Hot Path\n(axe 2)"]
-    D --> E["⬜ Étape 5\nÉlagage Alpha-Beta\nmacro-optimisation +\nearly cancellation"]
-    E --> F["⬜ Étape 6\nTable de transposition\nLRU bornée (axe 3)"]
+    A["✅ Étape 1\nMise en place\nPlateau + génération de coups\n+ Minimax naïf + baseline\n(~22-24K positions/s)"] --> E["✅ Étape 2\nÉlagage Alpha-Beta (MACRO)\n÷145,9 positions a profondeur 4\n(nouvelle reference pour la suite)"]
+    E --> B["⬜ Étape 3\nLocalité mémoire\nBitboards vs représentation objet"]
+    B --> C["⬜ Étape 4\nZéro-allocation\nmake/unmake move"]
+    C --> D["⬜ Étape 5\nProfiling réel\nFlamegraph/pprof, Hot Path\n(axe 2)"]
+    D --> F["⬜ Étape 6\nTable de transposition\nLRU bornée (axe 3)"]
     F --> G["⬜ Étape 7\nRecherche parallèle\nworker pool + atomique (axe 3)"]
     G --> H["⬜ Étape 8\nI/O & Persistance\nSQL indexé + gRPC (axe 3)"]
     H --> I["⬜ Étape 9\nÉchec constructif\nexpérience ratée, chiffrée\n(axe 4)"]
@@ -90,10 +92,10 @@ flowchart LR
     J --> K["⬜ Étape 11\nRapport d'audit final\nconsolidé (PDF/MD)"]
 
     style A fill:#2e7d32,color:#fff
+    style E fill:#2e7d32,color:#fff
     style B fill:#9e9e9e,color:#fff
     style C fill:#9e9e9e,color:#fff
     style D fill:#9e9e9e,color:#fff
-    style E fill:#9e9e9e,color:#fff
     style F fill:#9e9e9e,color:#fff
     style G fill:#9e9e9e,color:#fff
     style H fill:#9e9e9e,color:#fff
@@ -102,7 +104,7 @@ flowchart LR
     style K fill:#9e9e9e,color:#fff
 ```
 
-**Étape 1 terminée** (2026-09-23) — voir [MoteurEchecs/process/01-architecture-et-algorithme-naif.md](MoteurEchecs/process/01-architecture-et-algorithme-naif.md). Les étapes suivantes restent à réaliser. Un suivi détaillé (type `process/` et `syntheses/` de HashBreaker) sera mis en place dès le démarrage effectif du projet, en gardant à l'esprit que ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 11), puisque c'est ce document-là, et lui seul, qui sera noté.
+**Étapes 1 et 2 terminées** (2026-09-23) — voir [MoteurEchecs/process/](MoteurEchecs/process/README.md) et [MoteurEchecs/syntheses/](MoteurEchecs/syntheses/README.md) (suivi détaillé mis en place dès le démarrage, mêmes conventions que HashBreaker : chaque synthèse est autonome avec diagrammes + tableau comparatif contre l'étape directement comparable précédente). Les étapes suivantes restent à réaliser. À garder à l'esprit : ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 11), puisque c'est ce document-là, et lui seul, qui sera noté.
 
 > 📌 **Rappel explicite (2026-09-23)** : comme pour HashBreaker, il faudra produire des **synthèses de résultats** à chaque étape clé (pas seulement un rapport final écrit d'un coup à la fin) — un tableau chiffré avant/après par levier appliqué, mis à jour au fur et à mesure. C'est cette accumulation progressive de synthèses qui alimentera directement le tableau de synthèse comparatif final (Axe 5) et le rapport d'audit — pas une reconstruction a posteriori en fin de projet, qui serait bien moins fiable et plus difficile à sourcer.
 

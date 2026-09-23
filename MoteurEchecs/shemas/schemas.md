@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (V1 — Architecture & Algorithme Naïf)
+# Schémas — État actuel du projet (Étape 1 : Naïf, Étape 2 : Alpha-Beta)
 
 Diagrammes Mermaid de l'architecture et du fonctionnement du moteur. Même conventions que HashBreaker (`../../shemas/schemas.md`).
 
@@ -148,9 +148,16 @@ graph LR
         T11["mat en 1 trouve meme a profondeur 1"]
         T12["positions evaluees croit avec la profondeur"]
     end
+    subgraph "MinimaxAlphaBetaTest - 5 tests"
+        T13["coup choisi fait partie des coups legaux"]
+        T14["mat en 1 trouve meme a profondeur 1"]
+        T15["meme coup que Minimax pur (position depart)"]
+        T16["meme coup que Minimax pur (apres quelques coups)"]
+        T17["visite strictement moins de positions"]
+    end
 ```
 
-**Résultat actuel : 19/19 tests passent.**
+**Résultat actuel : 24/24 tests passent.**
 
 ---
 
@@ -164,22 +171,57 @@ xychart-beta
     bar [421, 8465]
 ```
 
-Débit stable autour de **~22 000 à 24 000 positions/seconde** — c'est cette valeur qui servira de référence pour mesurer les gains des futurs leviers (localité mémoire, zéro-allocation, élagage alpha-beta...).
+Débit stable autour de **~22 000 à 24 000 positions/seconde** — c'est cette valeur qui servira de référence pour mesurer les gains des futures micro-optimisations (l'élagage alpha-beta, lui, change l'algorithme : voir section suivante).
 
 ---
 
-## 7. Où on en est
+## 7. Étape 2 : Élagage Alpha-Beta (macro-optimisation)
+
+`MinimaxAlphaBeta` — mêmes structures (`modele`, `regles`, `evaluation`), seule `recherche/Minimax` est étendue avec des bornes `alpha`/`beta` qui coupent les branches mathématiquement inutiles.
+
+```mermaid
+flowchart TD
+    Check{"alpha >= beta ?"} -- "Oui" --> Coupe["COUPURE : branche entiere ignoree"]
+    Check -- "Non" --> Continue["Exploration normale"]
+
+    style Coupe fill:#c62828,color:#fff
+    style Continue fill:#2e7d32,color:#fff
+```
+
+### Impact mesuré (comparaison directe contre l'Étape 1, même position, même profondeur)
+
+```mermaid
+xychart-beta
+    title "Positions evaluees : Naif vs Alpha-Beta"
+    x-axis ["Profondeur 3", "Profondeur 4"]
+    y-axis "Positions evaluees" 0 --> 210000
+    bar [9322, 206603]
+    bar [585, 1416]
+```
+
+| Profondeur | Naïf | Alpha-Beta | Facteur | Coup trouvé |
+|---|---|---|---|---|
+| 3 | 9 322 pos. / 437 ms | 585 pos. / 22 ms | ÷15,9 / ÷19,9 | `b1c3` (identique) |
+| 4 | 206 603 pos. / 8 791 ms | 1 416 pos. / 53 ms | **÷145,9 / ÷165,9** | `b1c3` (identique) |
+
+**Équivalence mathématique validée par tests** : même coup choisi à chaque fois — le gain est "gratuit", zéro perte de qualité de décision. Débloque des profondeurs 5-6 auparavant hors de portée (1,8 s et 29,2 s respectivement). Détails : [process/02-elagage-alpha-beta.md](../process/02-elagage-alpha-beta.md) et [syntheses/02-elagage-alpha-beta.md](../syntheses/02-elagage-alpha-beta.md).
+
+---
+
+## 8. Où on en est
 
 ```mermaid
 flowchart LR
     A["✅ Architecture par packages\n(modele/regles/evaluation/recherche)"] --> B["✅ Algorithme naif\n(Minimax complet, sans elagage)"]
     B --> C["✅ Validation\n(perft=20, mat du fou, 19/19 tests)"]
     C --> D["✅ Baseline mesuree\n(~22-24K positions/s)"]
-    D --> E["⬜ Prochains leviers :\nlocalite memoire (bitboards),\nzero-allocation (make/unmake),\nelagage alpha-beta, profiling,\nworkers, I/O & persistance"]
+    D --> E["✅ Elagage Alpha-Beta (macro)\n÷145,9 positions a profondeur 4"]
+    E --> F["⬜ Prochains leviers :\nlocalite memoire (bitboards),\nzero-allocation (make/unmake),\nprofiling, workers,\nI/O & persistance"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
     style C fill:#2e7d32,color:#fff
     style D fill:#2e7d32,color:#fff
-    style E fill:#9e9e9e,color:#fff
+    style E fill:#2e7d32,color:#fff
+    style F fill:#9e9e9e,color:#fff
 ```
