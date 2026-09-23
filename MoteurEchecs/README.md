@@ -36,7 +36,8 @@ src/main/java/com/moteurechecs/
 │   └── MinimaxAlphaBeta.java         Minimax + élagage Alpha-Beta + make/unmake — version courante
 └── experimentation/
     ├── EtapeLocaliteMemoire.java      comparaison Plateau (objets) vs PlateauBits
-    └── DiagnosticAllocations.java     point d'entrée pour profiler MinimaxAlphaBeta sous JFR
+    ├── DiagnosticAllocations.java     point d'entrée pour profiler MinimaxAlphaBeta sous JFR
+    └── DiagnosticStructLayout.java    inspection JOL du layout mémoire de Piece/Coup/InfoAnnulation
 ```
 
 ## Simplifications actées (voir `choix-sujet.md`)

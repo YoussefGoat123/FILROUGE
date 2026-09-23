@@ -18,3 +18,4 @@ Chaque fichier doit être **autonome** (pas seulement un lien vers `shemas/`) et
 | 02 | Élagage Alpha-Beta (macro) | [02-elagage-alpha-beta.md](02-elagage-alpha-beta.md) |
 | 03 | Localité mémoire : Bitboards (micro) | [03-localite-memoire-bitboards.md](03-localite-memoire-bitboards.md) |
 | 04 | Zéro-allocation : caseAttaquee() + Make/Unmake (micro) | [04-zero-allocation.md](04-zero-allocation.md) |
+| 05 | Struct Padding / Alignement (JOL) | [05-struct-padding.md](05-struct-padding.md) |

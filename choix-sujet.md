@@ -83,18 +83,20 @@ flowchart LR
     A["✅ Étape 1\nMise en place\nPlateau + génération de coups\n+ Minimax naïf + baseline\n(~22-24K positions/s)"] --> E["✅ Étape 2\nÉlagage Alpha-Beta (MACRO)\n÷145,9 positions a profondeur 4\n(nouvelle reference pour la suite)"]
     E --> B["✅ Étape 3\nLocalité mémoire\nBitboards vs objets : x1,3\n(mesure pure, pas integre)"]
     B --> C["✅ Étape 4\nZéro-allocation\ncaseAttaquee directe + make/unmake\nx4,2, allocations ÷5"]
-    C --> D["⬜ Étape 5\nProfiling réel\nFlamegraph/pprof, Hot Path\n(axe 2)"]
-    D --> F["⬜ Étape 6\nTable de transposition\nLRU bornée (axe 3)"]
-    F --> G["⬜ Étape 7\nRecherche parallèle\nworker pool + atomique (axe 3)"]
-    G --> H["⬜ Étape 8\nI/O & Persistance\nSQL indexé + gRPC (axe 3)"]
-    H --> I["⬜ Étape 9\nÉchec constructif\nexpérience ratée, chiffrée\n(axe 4)"]
-    I --> J["⬜ Étape 10\nReproductibilité\nscript one-shot + tableau\nfinal (axe 5)"]
-    J --> K["⬜ Étape 11\nRapport d'audit final\nconsolidé (PDF/MD)"]
+    C --> SP["✅ Étape 5\nStruct Padding (JOL)\nverifie : rien a corriger\n(levier du cours rattrape apres-coup)"]
+    SP --> D["⬜ Étape 6\nProfiling réel\nFlamegraph/pprof, Hot Path\n(axe 2)"]
+    D --> F["⬜ Étape 7\nTable de transposition\nLRU bornée (axe 3)"]
+    F --> G["⬜ Étape 8\nRecherche parallèle\nworker pool + atomique (axe 3)"]
+    G --> H["⬜ Étape 9\nI/O & Persistance\nSQL indexé + gRPC (axe 3)"]
+    H --> I["⬜ Étape 10\nÉchec constructif\nexpérience ratée, chiffrée\n(axe 4)"]
+    I --> J["⬜ Étape 11\nReproductibilité\nscript one-shot + tableau\nfinal (axe 5)"]
+    J --> K["⬜ Étape 12\nRapport d'audit final\nconsolidé (PDF/MD)"]
 
     style A fill:#2e7d32,color:#fff
     style E fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
     style C fill:#2e7d32,color:#fff
+    style SP fill:#2e7d32,color:#fff
     style D fill:#9e9e9e,color:#fff
     style F fill:#9e9e9e,color:#fff
     style G fill:#9e9e9e,color:#fff
@@ -104,7 +106,7 @@ flowchart LR
     style K fill:#9e9e9e,color:#fff
 ```
 
-**Étapes 1 à 4 terminées** (2026-09-23) — voir [MoteurEchecs/process/](MoteurEchecs/process/README.md) et [MoteurEchecs/syntheses/](MoteurEchecs/syntheses/README.md) (suivi détaillé mis en place dès le démarrage, mêmes conventions que HashBreaker : chaque synthèse est autonome avec diagrammes + tableau comparatif contre l'étape directement comparable précédente). Depuis l'Étape 4, le code est modifié **en place** (pas de classes parallèles par étape) — la comparaison avant/après repose sur des mesures Hyperfine/JFR prises juste avant chaque modification, conservées dans `MoteurEchecs/profiling/`. Les étapes suivantes restent à réaliser. À garder à l'esprit : ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 11), puisque c'est ce document-là, et lui seul, qui sera noté.
+**Étapes 1 à 5 terminées** (2026-09-23) — voir [MoteurEchecs/process/](MoteurEchecs/process/README.md) et [MoteurEchecs/syntheses/](MoteurEchecs/syntheses/README.md) (suivi détaillé mis en place dès le démarrage, mêmes conventions que HashBreaker : chaque synthèse est autonome avec diagrammes + tableau comparatif contre l'étape directement comparable précédente). L'Étape 5 (struct padding/JOL) a été insérée après coup — un levier du cours identifié comme manqué en relisant la roadmap, plutôt que laissé de côté silencieusement. Depuis l'Étape 4, le code est modifié **en place** (pas de classes parallèles par étape) — la comparaison avant/après repose sur des mesures Hyperfine/JFR prises juste avant chaque modification, conservées dans `MoteurEchecs/profiling/`. Les étapes suivantes restent à réaliser. À garder à l'esprit : ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 12), puisque c'est ce document-là, et lui seul, qui sera noté.
 
 > 📌 **Rappel explicite (2026-09-23)** : comme pour HashBreaker, il faudra produire des **synthèses de résultats** à chaque étape clé (pas seulement un rapport final écrit d'un coup à la fin) — un tableau chiffré avant/après par levier appliqué, mis à jour au fur et à mesure. C'est cette accumulation progressive de synthèses qui alimentera directement le tableau de synthèse comparatif final (Axe 5) et le rapport d'audit — pas une reconstruction a posteriori en fin de projet, qui serait bien moins fiable et plus difficile à sourcer.
 

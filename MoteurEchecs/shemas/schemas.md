@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (Étapes 1 à 4)
+# Schémas — État actuel du projet (Étapes 1 à 5)
 
 Diagrammes Mermaid de l'architecture et du fonctionnement du moteur. Même conventions que HashBreaker (`../../shemas/schemas.md`).
 
@@ -284,9 +284,33 @@ Même coup trouvé (`b2b3`) avant/après, tests d'équivalence avec `Minimax` pu
 
 ---
 
-## 10. Fonctionnement des méthodes principales (état actuel du code)
+## 10. Étape 5 : Struct Padding / Alignement (JOL) — levier rattrapé
 
-### 10.1 `MinimaxAlphaBeta.meilleurCoup()` — point d'entrée de la recherche
+Vérification (jamais faite ici, alors qu'elle l'était sur HashBreaker) du layout mémoire réel de `Piece`, `Coup` et `Plateau.InfoAnnulation` — créés en masse pendant la recherche.
+
+**Piège rencontré** : JOL refuse par défaut d'analyser les `record` Java (`UnsupportedOperationException: can't get field offset on a record class`) — contourné avec `-Djol.magicFieldOffset=true`.
+
+```mermaid
+xychart-beta
+    title "Taille totale par structure (octets)"
+    x-axis ["Piece", "Coup", "InfoAnnulation"]
+    y-axis "Octets" 0 --> 35
+    bar [24, 32, 24]
+```
+
+| Structure | Taille | Padding |
+|---|---|---|
+| `Piece` (2 refs enum) | 24 octets | 4 octets (~16,7%) |
+| `Coup` (4 int + 1 enum) | 32 octets | **0 octet** |
+| `InfoAnnulation` (2 refs Piece) | 24 octets | 4 octets (~16,7%) |
+
+**Conclusion : rien à corriger manuellement.** Le padding sur `Piece`/`InfoAnnulation` vient de l'arrondi obligatoire à 8 octets de la JVM (2 champs de 4B = 20B avec l'en-tête, arrondi à 24B) — pas d'un mauvais ordre de champs (aucun réordonnancement de 2 champs identiques ne change rien). Même conclusion que HashBreaker Séance 3, mais **vérifiée** sur des structures à composition différente, pas supposée par analogie. Détails : [process/05-struct-padding-jol.md](../process/05-struct-padding-jol.md).
+
+---
+
+## 11. Fonctionnement des méthodes principales (état actuel du code)
+
+### 11.1 `MinimaxAlphaBeta.meilleurCoup()` — point d'entrée de la recherche
 
 ```mermaid
 flowchart TD
@@ -307,7 +331,7 @@ flowchart TD
 
 Pas de coupure à la racine (il faut comparer tous les coups candidats), mais `alpha`/`beta` se resserrent à chaque coup testé.
 
-### 10.2 `MinimaxAlphaBeta.alphabeta()` — le cœur récursif avec élagage
+### 11.2 `MinimaxAlphaBeta.alphabeta()` — le cœur récursif avec élagage
 
 ```mermaid
 flowchart TD
@@ -334,7 +358,7 @@ flowchart TD
 
 Même fonction pour BLANC (maximise) et NOIR (minimise) selon `plateau.trait()` — diagramme simplifié en un seul chemin, le code a deux branches symétriques (`Math.max`/`alpha` vs `Math.min`/`beta`).
 
-### 10.3 `GenerateurCoups.coupsLegaux()` — filtrage pseudo-légal → légal
+### 11.3 `GenerateurCoups.coupsLegaux()` — filtrage pseudo-légal → légal
 
 ```mermaid
 flowchart TD
@@ -352,7 +376,7 @@ flowchart TD
 
 Chaque coup pseudo-légal est essayé puis annulé sur la même instance de plateau (make/unmake) — plus aucune copie de grille ici depuis l'Étape 4.
 
-### 10.4 `GenerateurCoups.caseAttaquee()` — détection directe (réécrite à l'Étape 4)
+### 11.4 `GenerateurCoups.caseAttaquee()` — détection directe (réécrite à l'Étape 4)
 
 ```mermaid
 flowchart TD
@@ -374,7 +398,7 @@ flowchart TD
 
 Chaque test regarde directement les cases pertinentes (aucune liste de coups générée) — la correction qui a fait passer les allocations de 600 à 120 échantillons (Étape 4).
 
-### 10.5 `Plateau.jouer()` / `annuler()` — le mécanisme make/unmake
+### 11.5 `Plateau.jouer()` / `annuler()` — le mécanisme make/unmake
 
 ```mermaid
 sequenceDiagram
@@ -395,7 +419,7 @@ sequenceDiagram
 
 Une seule instance de `Plateau` traverse tout l'arbre de recherche — c'est le "buffer réutilisé" de l'Étape 4, l'équivalent échecs du `[8]byte` du cours.
 
-### 10.6 `GenerateurCoups.coupsPseudoLegaux()` — génération brute, par type de pièce
+### 11.6 `GenerateurCoups.coupsPseudoLegaux()` — génération brute, par type de pièce
 
 ```mermaid
 flowchart TD
@@ -420,7 +444,7 @@ flowchart TD
 
 Balaie les 64 cases une seule fois, délègue par type de pièce — pas encore optimisé (candidat naturel pour les bitboards, Étape 3, une fois intégrés).
 
-### 10.7 `GenerateurCoups.genererCoupsPion()` — le cas le plus riche en règles
+### 11.7 `GenerateurCoups.genererCoupsPion()` — le cas le plus riche en règles
 
 ```mermaid
 flowchart TD
@@ -439,7 +463,7 @@ flowchart TD
 
 Seule méthode qui gère la promotion (auto-Dame) et l'avance double conditionnelle — cohérent avec la simplification actée (pas de prise en passant).
 
-### 10.8 `GenerateurCoups.genererCoupsGlissants()` — fou/tour/dame (rayons)
+### 11.8 `GenerateurCoups.genererCoupsGlissants()` — fou/tour/dame (rayons)
 
 ```mermaid
 flowchart TD
@@ -460,7 +484,7 @@ flowchart TD
 
 Exactement le même schéma sert au cavalier/roi (`genererCoupsSauts`), mais sans la boucle "continue à glisser" — un seul pas par direction, pas de rayon.
 
-### 10.9 `Evaluateur.evaluer()` — score matériel
+### 11.9 `Evaluateur.evaluer()` — score matériel
 
 ```mermaid
 flowchart TD
@@ -481,7 +505,7 @@ Volontairement simple (V1) : aucune table de position, aucun bonus structurel �
 
 ---
 
-## 11. Où on en est
+## 12. Où on en est
 
 ```mermaid
 flowchart LR
@@ -491,7 +515,8 @@ flowchart LR
     D --> E["✅ Elagage Alpha-Beta (macro)\n÷145,9 positions a profondeur 4"]
     E --> EE["✅ Localite memoire (micro)\nBitboards : x1,3"]
     EE --> ZA["✅ Zero-allocation (micro)\ncaseAttaquee directe + make/unmake\nx4,2, allocations ÷5"]
-    ZA --> F["⬜ Prochains leviers :\nreutilisation des listes de Coup,\nprofiling, workers,\nI/O & persistance"]
+    ZA --> SP["✅ Struct padding (JOL)\nverifie : rien a corriger\n(Coup=0 perte, Piece/InfoAnnulation=4B incompressibles)"]
+    SP --> F["⬜ Prochains leviers :\nreutilisation des listes de Coup,\nprofiling, workers,\nI/O & persistance"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
@@ -500,5 +525,6 @@ flowchart LR
     style EE fill:#2e7d32,color:#fff
     style E fill:#2e7d32,color:#fff
     style ZA fill:#2e7d32,color:#fff
+    style SP fill:#2e7d32,color:#fff
     style F fill:#9e9e9e,color:#fff
 ```
