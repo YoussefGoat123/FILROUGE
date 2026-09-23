@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (Séance 1-3 complètes, Séance 4 démarrée)
+# Schémas — État actuel du projet (Séances 1 à 4 complètes)
 
 Diagrammes Mermaid de ce qui a été produit jusqu'ici : structure du projet, code de `Main.java` et `Seance2LocaliteMemoire.java`, flux d'exécution et couverture des tests.
 
@@ -486,7 +486,28 @@ xychart-beta
 
 ---
 
-## 15. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java` + `Seance3ZeroAllocationTest.java` + `Seance4ComparaisonBinaireTest.java`)
+## 15. Séance 4 — Partie 4 : Validation finale — `@kAl1` enfin craqué
+
+La mission originale du tout premier document du cours (J1_AM, Niveau 3 "Saturation") n'avait jamais été attaquée. Constat : `@`, `k`, `A`, `l`, `1` sont déjà tous dans notre alphabet (63 symboles) — pas besoin d'extension à 70+ symboles pour cette cible précise.
+
+```mermaid
+flowchart LR
+    Hash["Hash reel calcule :\nb96ec5f7...4ab641a5"] --> Run["Seance4ComparaisonBinaire.craquer\n('@kAl1', hash, 5)"]
+    Run --> Result["Trouve en 77 461 ms\n(~12,8M candidats/s)"]
+    Result --> Why["'@' = dernier caractere de l'alphabet\n-> quasi pire-cas d'enumeration\n(~98,4% de l'espace parcouru)"]
+
+    style Hash fill:#2d6cdf,color:#fff
+    style Result fill:#2e7d32,color:#fff
+    style Why fill:#f9a825,color:#000
+```
+
+> ⚠️ Craqué en **mono-thread**. Le PDF d'origine le désignait comme "stress-test multi-cœurs" — le vrai test de parallélisme reste à faire dans une séance future dédiée aux workers.
+
+**Séance 4 terminée (4/4 parties).** Synthèse complète : [syntheses/04-seance4-metrologie-profiling.md](../syntheses/04-seance4-metrologie-profiling.md). Détails : [process/15-seance4-partie4-preuve-statistique.md](../process/15-seance4-partie4-preuve-statistique.md).
+
+---
+
+## 16. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java` + `Seance3ZeroAllocationTest.java` + `Seance4ComparaisonBinaireTest.java`)
 
 ```mermaid
 graph LR
@@ -544,7 +565,7 @@ graph LR
 
 ---
 
-## 16. Baseline mesurée — z3D vs Sh3n
+## 17. Baseline mesurée — z3D vs Sh3n
 
 ```mermaid
 xychart-beta
@@ -558,7 +579,7 @@ L'espace de recherche est ~62x plus grand pour `Sh3n` (un caractère de plus) et
 
 ---
 
-## 17. Où on en est dans le TP
+## 18. Où on en est dans le TP
 
 ```mermaid
 flowchart LR
@@ -574,7 +595,7 @@ flowchart LR
     J --> K["✅ Séance 3 Partie 4\nValidation : 406→1 cycle GC,\n0 alloc. attribuable au code"]
     K --> L["✅ Séance 4 Partie 1-2\nFlamegraph CPU :\nsha256() = ~51,6% du temps CPU"]
     L --> M["✅ Séance 4 Partie 3\nComparaison 64-bit :\nHyperfine x10,11 vs naif (statistique)"]
-    M --> N["⬜ Séance 4 Partie 4\nPreuve statistique formelle\n+ captures pour le rapport"]
+    M --> N["✅ Séance 4 Partie 4\n@kAl1 craqué : 77,5s mono-thread"]
     N --> O["⬜ Séances suivantes :\nworkers, gRPC, SQL"]
 
     style A fill:#2e7d32,color:#fff
@@ -590,8 +611,8 @@ flowchart LR
     style K fill:#2e7d32,color:#fff
     style L fill:#2e7d32,color:#fff
     style M fill:#2e7d32,color:#fff
-    style N fill:#f9a825,color:#000
+    style N fill:#2e7d32,color:#fff
     style O fill:#9e9e9e,color:#fff
 ```
 
-**Séance 2 et Séance 3 terminées. Séance 4 : 3/4 parties faites.**
+**Séances 2, 3 et 4 terminées.**

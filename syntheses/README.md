@@ -9,3 +9,4 @@ Une synthèse par TP/séance terminée : le condensé "à retenir", pensé pour 
 | 01 | Séance 1 — Mise en place & Craqueur Naïf | [01-seance1-force-brute-sha256.md](01-seance1-force-brute-sha256.md) |
 | 02 | Séance 2 — Architecture Matérielle, CPU & Localité Mémoire | [02-seance2-cpu-caches-localite-memoire.md](02-seance2-cpu-caches-localite-memoire.md) |
 | 03 | Séance 3 — Modèle Mémoire, Zéro-Allocation & Struct Padding | [03-seance3-memoire-zero-allocation.md](03-seance3-memoire-zero-allocation.md) |
+| 04 | Séance 4 — Métrologie, Micro-benchmarks & Profiling | [04-seance4-metrologie-profiling.md](04-seance4-metrologie-profiling.md) |

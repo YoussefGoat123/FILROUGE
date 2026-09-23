@@ -27,6 +27,11 @@ public class Seance4ComparaisonBinaire {
     public static void main(String[] args) throws NoSuchAlgorithmException, DigestException {
         craquer("z3D", "a532ca5e11e2b06ccc911e0d962a4864cdb87da05723f3a050a376d0f0895e63", 3);
         craquer("Sh3n", "bd7d0ea8cf7ade4a446ba4efc46fd99071ec3f423770991ac51f70ec5a894dc7", 4);
+
+        // Niveau 3 - Saturation. "@kAl1" est entierement couvert par notre alphabet
+        // actuel (63 symboles incluant '@') : pas besoin d'etendre a 70+ symboles
+        // pour cette cible precise, meme si le niveau complet le suggere.
+        craquer("@kAl1", "b96ec5f74610e96c808a6f062190085adeddeefe085b56cc768f551b4ab641a5", 5);
     }
 
     static void craquer(String nomCible, String hashCibleHex, int longueur) throws NoSuchAlgorithmException, DigestException {
