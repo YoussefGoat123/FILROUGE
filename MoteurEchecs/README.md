@@ -54,6 +54,9 @@ src/main/java/com/moteurechecs/
 |---|---|---|
 | Naïf (Étape 1, sans élagage) | — (profondeur 4 max mesurée : 8,465 s) | — |
 | Alpha-Beta (Étape 2, macro) | 1,999 s ± 0,058 s (profondeur 5) | référence |
-| + Zéro-allocation (Étape 4, micro) | 475,3 ms ± 37,8 ms | **×4,2** |
+| + Zéro-allocation (Étape 4, micro) | 475,3 ms ± 37,8 ms | ×4,2 |
+| + Pré-allocation capacité (Étape 6, micro) | 426,3 ms ± 35,8 ms | **×4,7** |
+
+Étape 5 (struct padding, JOL) : vérifiée, aucun gain accessible manuellement en Java (voir synthèse dédiée).
 
 Détail complet, diagrammes et interprétation : [syntheses/](syntheses/README.md).

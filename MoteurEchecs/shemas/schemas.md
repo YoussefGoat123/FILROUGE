@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (Étapes 1 à 5)
+# Schémas — État actuel du projet (Étapes 1 à 6)
 
 Diagrammes Mermaid de l'architecture et du fonctionnement du moteur. Même conventions que HashBreaker (`../../shemas/schemas.md`).
 
@@ -308,9 +308,30 @@ xychart-beta
 
 ---
 
-## 11. Fonctionnement des méthodes principales (état actuel du code)
+## 11. Étape 6 : Pré-allocation de capacité (listes de `Coup`) — levier rattrapé
 
-### 11.1 `MinimaxAlphaBeta.meilleurCoup()` — point d'entrée de la recherche
+Application littérale de l'exemple J2_PM ("réallocations de slices") : `new ArrayList<>()` → capacité pré-dimensionnée, dans `GenerateurCoups.coupsLegaux()` (capacité **exacte** : `pseudoLegaux.size()`) et `coupsPseudoLegaux()` (capacité **estimée** : 48, documentée comme telle).
+
+```mermaid
+xychart-beta
+    title "Temps moyen (ms, Hyperfine 5 essais)"
+    x-axis ["Avant (fin Etape 4)", "Apres (pre-allocation)"]
+    y-axis "Temps (ms)" 0 --> 550
+    bar [475.3, 426.3]
+```
+
+| Mesure | Avant | Après | Facteur |
+|---|---|---|---|
+| Temps (Hyperfine) | 475,3 ms ± 37,8 ms | 426,3 ms ± 35,8 ms | **×1,11** |
+| Échantillons d'allocation (JFR) | 120 | 120 | inchangé |
+
+**Gain réel mais modeste, assumé honnêtement comme tel** — contrairement à `caseAttaquee()` (Étape 4, ×4,2) qui éliminait un vrai travail inutile, ce levier optimise un détail d'implémentation d'`ArrayList` (moins de petits tableaux internes recopiés, pas moins de volume total alloué — d'où l'absence de mouvement visible sur les échantillons JFR, sensibles au débit d'octets). Les intervalles ±1σ se chevauchent légèrement avec seulement 5 essais — pas une preuve aussi solide que les gains précédents. Détails : [process/06-preallocation-listes-coup.md](../process/06-preallocation-listes-coup.md).
+
+---
+
+## 12. Fonctionnement des méthodes principales (état actuel du code)
+
+### 12.1 `MinimaxAlphaBeta.meilleurCoup()` — point d'entrée de la recherche
 
 ```mermaid
 flowchart TD
@@ -331,7 +352,7 @@ flowchart TD
 
 Pas de coupure à la racine (il faut comparer tous les coups candidats), mais `alpha`/`beta` se resserrent à chaque coup testé.
 
-### 11.2 `MinimaxAlphaBeta.alphabeta()` — le cœur récursif avec élagage
+### 12.2 `MinimaxAlphaBeta.alphabeta()` — le cœur récursif avec élagage
 
 ```mermaid
 flowchart TD
@@ -358,7 +379,7 @@ flowchart TD
 
 Même fonction pour BLANC (maximise) et NOIR (minimise) selon `plateau.trait()` — diagramme simplifié en un seul chemin, le code a deux branches symétriques (`Math.max`/`alpha` vs `Math.min`/`beta`).
 
-### 11.3 `GenerateurCoups.coupsLegaux()` — filtrage pseudo-légal → légal
+### 12.3 `GenerateurCoups.coupsLegaux()` — filtrage pseudo-légal → légal
 
 ```mermaid
 flowchart TD
@@ -376,7 +397,7 @@ flowchart TD
 
 Chaque coup pseudo-légal est essayé puis annulé sur la même instance de plateau (make/unmake) — plus aucune copie de grille ici depuis l'Étape 4.
 
-### 11.4 `GenerateurCoups.caseAttaquee()` — détection directe (réécrite à l'Étape 4)
+### 12.4 `GenerateurCoups.caseAttaquee()` — détection directe (réécrite à l'Étape 4)
 
 ```mermaid
 flowchart TD
@@ -398,7 +419,7 @@ flowchart TD
 
 Chaque test regarde directement les cases pertinentes (aucune liste de coups générée) — la correction qui a fait passer les allocations de 600 à 120 échantillons (Étape 4).
 
-### 11.5 `Plateau.jouer()` / `annuler()` — le mécanisme make/unmake
+### 12.5 `Plateau.jouer()` / `annuler()` — le mécanisme make/unmake
 
 ```mermaid
 sequenceDiagram
@@ -419,7 +440,7 @@ sequenceDiagram
 
 Une seule instance de `Plateau` traverse tout l'arbre de recherche — c'est le "buffer réutilisé" de l'Étape 4, l'équivalent échecs du `[8]byte` du cours.
 
-### 11.6 `GenerateurCoups.coupsPseudoLegaux()` — génération brute, par type de pièce
+### 12.6 `GenerateurCoups.coupsPseudoLegaux()` — génération brute, par type de pièce
 
 ```mermaid
 flowchart TD
@@ -444,7 +465,7 @@ flowchart TD
 
 Balaie les 64 cases une seule fois, délègue par type de pièce — pas encore optimisé (candidat naturel pour les bitboards, Étape 3, une fois intégrés).
 
-### 11.7 `GenerateurCoups.genererCoupsPion()` — le cas le plus riche en règles
+### 12.7 `GenerateurCoups.genererCoupsPion()` — le cas le plus riche en règles
 
 ```mermaid
 flowchart TD
@@ -463,7 +484,7 @@ flowchart TD
 
 Seule méthode qui gère la promotion (auto-Dame) et l'avance double conditionnelle — cohérent avec la simplification actée (pas de prise en passant).
 
-### 11.8 `GenerateurCoups.genererCoupsGlissants()` — fou/tour/dame (rayons)
+### 12.8 `GenerateurCoups.genererCoupsGlissants()` — fou/tour/dame (rayons)
 
 ```mermaid
 flowchart TD
@@ -484,7 +505,7 @@ flowchart TD
 
 Exactement le même schéma sert au cavalier/roi (`genererCoupsSauts`), mais sans la boucle "continue à glisser" — un seul pas par direction, pas de rayon.
 
-### 11.9 `Evaluateur.evaluer()` — score matériel
+### 12.9 `Evaluateur.evaluer()` — score matériel
 
 ```mermaid
 flowchart TD
@@ -505,7 +526,7 @@ Volontairement simple (V1) : aucune table de position, aucun bonus structurel �
 
 ---
 
-## 12. Où on en est
+## 13. Où on en est
 
 ```mermaid
 flowchart LR
@@ -516,7 +537,8 @@ flowchart LR
     E --> EE["✅ Localite memoire (micro)\nBitboards : x1,3"]
     EE --> ZA["✅ Zero-allocation (micro)\ncaseAttaquee directe + make/unmake\nx4,2, allocations ÷5"]
     ZA --> SP["✅ Struct padding (JOL)\nverifie : rien a corriger\n(Coup=0 perte, Piece/InfoAnnulation=4B incompressibles)"]
-    SP --> F["⬜ Prochains leviers :\nreutilisation des listes de Coup,\nprofiling, workers,\nI/O & persistance"]
+    SP --> PA["✅ Pre-allocation capacite\n(listes de Coup) : x1,11"]
+    PA --> F["⬜ Prochains leviers :\nprofiling reel (Flamegraph),\ntable de transposition,\nworkers, I/O & persistance"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
@@ -526,5 +548,6 @@ flowchart LR
     style E fill:#2e7d32,color:#fff
     style ZA fill:#2e7d32,color:#fff
     style SP fill:#2e7d32,color:#fff
+    style PA fill:#2e7d32,color:#fff
     style F fill:#9e9e9e,color:#fff
 ```

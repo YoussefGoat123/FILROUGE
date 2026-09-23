@@ -48,7 +48,8 @@ public class GenerateurCoups {
     public static List<Coup> coupsLegaux(Plateau plateau) {
         Couleur joueur = plateau.trait();
         List<Coup> pseudoLegaux = coupsPseudoLegaux(plateau, joueur);
-        List<Coup> legaux = new ArrayList<>();
+        // capacite exacte, pas une estimation : legaux ne peut jamais depasser pseudoLegaux (filtrage pur)
+        List<Coup> legaux = new ArrayList<>(pseudoLegaux.size());
 
         for (Coup coup : pseudoLegaux) {
             Plateau.InfoAnnulation info = plateau.jouer(coup);
@@ -134,8 +135,12 @@ public class GenerateurCoups {
         return false;
     }
 
+    // capacite estimee (pas garantie) : une position a rarement plus de coups pseudo-legaux que ca
+    // en jeu reel -- evite 2-3 reallocations internes par appel (10 -> 20 -> 40, capacite par defaut)
+    private static final int CAPACITE_COUPS_ESTIMEE = 48;
+
     static List<Coup> coupsPseudoLegaux(Plateau plateau, Couleur couleur) {
-        List<Coup> coups = new ArrayList<>();
+        List<Coup> coups = new ArrayList<>(CAPACITE_COUPS_ESTIMEE);
 
         for (int ligne = 0; ligne < 8; ligne++) {
             for (int colonne = 0; colonne < 8; colonne++) {
