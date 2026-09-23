@@ -284,7 +284,204 @@ Même coup trouvé (`b2b3`) avant/après, tests d'équivalence avec `Minimax` pu
 
 ---
 
-## 10. Où on en est
+## 10. Fonctionnement des méthodes principales (état actuel du code)
+
+### 10.1 `MinimaxAlphaBeta.meilleurCoup()` — point d'entrée de la recherche
+
+```mermaid
+flowchart TD
+    Start(["meilleurCoup(plateau, profondeur)"]) --> Coups["coups = GenerateurCoups.coupsLegaux(plateau)"]
+    Coups --> Vide{"coups vide ?"}
+    Vide -- "Oui" --> Null(["renvoie null (mat/pat)"])
+    Vide -- "Non" --> Boucle["pour chaque coup candidat"]
+    Boucle --> Jouer["plateau.jouer(coup) -- mute en place"]
+    Jouer --> Rec["score = alphabeta(plateau, profondeur-1, alpha, beta)"]
+    Rec --> Annuler["plateau.annuler(coup, info) -- restaure"]
+    Annuler --> Compare{"meilleur que le score actuel ?"}
+    Compare -- "Oui" --> MAJ["meilleurCoup = coup\nmeilleurScore = score"]
+    Compare -- "Non" --> Suite["coup suivant"]
+    MAJ --> Suite
+    Suite --> Boucle
+    Boucle -- "tous testes" --> Fin(["renvoie meilleurCoup"])
+```
+
+Pas de coupure à la racine (il faut comparer tous les coups candidats), mais `alpha`/`beta` se resserrent à chaque coup testé.
+
+### 10.2 `MinimaxAlphaBeta.alphabeta()` — le cœur récursif avec élagage
+
+```mermaid
+flowchart TD
+    Start(["alphabeta(plateau, profondeur, alpha, beta)"]) --> Coups["coups = GenerateurCoups.coupsLegaux(plateau)"]
+    Coups --> Terminal{"coups vide ?"}
+    Terminal -- "Oui" --> Echec{"roi en echec ?"}
+    Echec -- "Oui" --> Mat(["MAT : score extreme\najuste par la profondeur"])
+    Echec -- "Non" --> Pat(["PAT : score = 0"])
+    Terminal -- "Non" --> Prof{"profondeur == 0 ?"}
+    Prof -- "Oui" --> Eval(["Evaluateur.evaluer(plateau)"])
+    Prof -- "Non" --> Boucle["pour chaque coup"]
+    Boucle --> Jouer["plateau.jouer(coup)"]
+    Jouer --> RecAppel["score = alphabeta(plateau, profondeur-1, alpha, beta)"]
+    RecAppel --> Annuler["plateau.annuler(coup, info)"]
+    Annuler --> MAJBornes["max/min mis a jour, alpha ou beta resserre"]
+    MAJBornes --> Coupe{"alpha >= beta ?"}
+    Coupe -- "Oui" --> Break(["COUPURE : arrete cette boucle"])
+    Coupe -- "Non" --> Boucle
+
+    style Mat fill:#c62828,color:#fff
+    style Break fill:#c62828,color:#fff
+    style Eval fill:#2d6cdf,color:#fff
+```
+
+Même fonction pour BLANC (maximise) et NOIR (minimise) selon `plateau.trait()` — diagramme simplifié en un seul chemin, le code a deux branches symétriques (`Math.max`/`alpha` vs `Math.min`/`beta`).
+
+### 10.3 `GenerateurCoups.coupsLegaux()` — filtrage pseudo-légal → légal
+
+```mermaid
+flowchart TD
+    Start(["coupsLegaux(plateau)"]) --> Pseudo["pseudoLegaux = coupsPseudoLegaux(plateau, trait)"]
+    Pseudo --> Boucle["pour chaque coup pseudo-legal"]
+    Boucle --> Jouer["plateau.jouer(coup) -- mute en place"]
+    Jouer --> Check{"roiEnEchec(plateau, joueur) ?"}
+    Check -- "Non" --> Ajoute["ajoute coup a la liste 'legaux'"]
+    Check -- "Oui" --> Skip["ne garde pas ce coup"]
+    Ajoute --> Annuler["plateau.annuler(coup, info) -- restaure"]
+    Skip --> Annuler
+    Annuler --> Boucle
+    Boucle -- "tous testes" --> Fin(["renvoie la liste 'legaux'"])
+```
+
+Chaque coup pseudo-légal est essayé puis annulé sur la même instance de plateau (make/unmake) — plus aucune copie de grille ici depuis l'Étape 4.
+
+### 10.4 `GenerateurCoups.caseAttaquee()` — détection directe (réécrite à l'Étape 4)
+
+```mermaid
+flowchart TD
+    Start(["caseAttaquee(plateau, ligne, colonne, parCouleur)"]) --> P{"un pion parCouleur\nen diagonale arriere ?"}
+    P -- "Oui" --> True(["true"])
+    P -- "Non" --> C{"un cavalier parCouleur\na un saut en L ?"}
+    C -- "Oui" --> True
+    C -- "Non" --> R{"un roi parCouleur\nadjacent ?"}
+    R -- "Oui" --> True
+    R -- "Non" --> F{"un fou/dame parCouleur\nen diagonale, rien entre les deux ?"}
+    F -- "Oui" --> True
+    F -- "Non" --> T{"une tour/dame parCouleur\nen ligne/colonne, rien entre les deux ?"}
+    T -- "Oui" --> True
+    T -- "Non" --> False(["false"])
+
+    style True fill:#2e7d32,color:#fff
+    style False fill:#9e9e9e,color:#fff
+```
+
+Chaque test regarde directement les cases pertinentes (aucune liste de coups générée) — la correction qui a fait passer les allocations de 600 à 120 échantillons (Étape 4).
+
+### 10.5 `Plateau.jouer()` / `annuler()` — le mécanisme make/unmake
+
+```mermaid
+sequenceDiagram
+    participant Appelant
+    participant Plateau
+
+    Appelant->>Plateau: jouer(coup)
+    Note over Plateau: sauvegarde piece d'origine + piece capturee<br/>dans un InfoAnnulation (petit record)
+    Plateau->>Plateau: deplace la piece, mute la grille EN PLACE
+    Plateau-->>Appelant: InfoAnnulation
+
+    Note over Appelant: ... exploration recursive sur CE MEME plateau ...
+
+    Appelant->>Plateau: annuler(coup, info)
+    Plateau->>Plateau: remet piece d'origine en case depart,<br/>piece capturee (ou vide) en case arrivee
+    Note over Plateau: plateau EXACTEMENT comme avant jouer()
+```
+
+Une seule instance de `Plateau` traverse tout l'arbre de recherche — c'est le "buffer réutilisé" de l'Étape 4, l'équivalent échecs du `[8]byte` du cours.
+
+### 10.6 `GenerateurCoups.coupsPseudoLegaux()` — génération brute, par type de pièce
+
+```mermaid
+flowchart TD
+    Start(["coupsPseudoLegaux(plateau, couleur)"]) --> Boucle["pour chaque case (ligne, colonne) du plateau (0..7 x 0..7)"]
+    Boucle --> Piece{"piece presente\net de la bonne couleur ?"}
+    Piece -- "Non" --> Boucle
+    Piece -- "Oui" --> Type{"quel type ?"}
+    Type -- "PION" --> Pion["genererCoupsPion(...)"]
+    Type -- "CAVALIER" --> Saut1["genererCoupsSauts(..., SAUTS_CAVALIER)"]
+    Type -- "ROI" --> Saut2["genererCoupsSauts(..., DIRECTIONS_DAME_ROI)"]
+    Type -- "FOU" --> Gliss1["genererCoupsGlissants(..., DIRECTIONS_FOU)"]
+    Type -- "TOUR" --> Gliss2["genererCoupsGlissants(..., DIRECTIONS_TOUR)"]
+    Type -- "DAME" --> Gliss3["genererCoupsGlissants(..., DIRECTIONS_DAME_ROI)"]
+    Pion --> Boucle
+    Saut1 --> Boucle
+    Saut2 --> Boucle
+    Gliss1 --> Boucle
+    Gliss2 --> Boucle
+    Gliss3 --> Boucle
+    Boucle -- "64 cases balayees" --> Fin(["renvoie la liste 'coups' remplie"])
+```
+
+Balaie les 64 cases une seule fois, délègue par type de pièce — pas encore optimisé (candidat naturel pour les bitboards, Étape 3, une fois intégrés).
+
+### 10.7 `GenerateurCoups.genererCoupsPion()` — le cas le plus riche en règles
+
+```mermaid
+flowchart TD
+    Start(["genererCoupsPion(plateau, ligne, colonne, couleur)"]) --> Avance{"case juste devant\nest vide ?"}
+    Avance -- "Non" --> Captures
+    Avance -- "Oui" --> Ajoute1["ajoute avance simple\n(+ promotion si derniere rangee)"]
+    Ajoute1 --> RangeeDepart{"sur la rangee de depart\nET case 2 devant vide ?"}
+    RangeeDepart -- "Oui" --> Ajoute2["ajoute avance double"]
+    RangeeDepart -- "Non" --> Captures
+    Ajoute2 --> Captures["pour chaque diagonale (gauche, droite)"]
+    Captures --> Cible{"piece adverse presente\nen diagonale ?"}
+    Cible -- "Oui" --> Ajoute3["ajoute capture\n(+ promotion si derniere rangee)"]
+    Cible -- "Non" --> Fin(["fin"])
+    Ajoute3 --> Fin
+```
+
+Seule méthode qui gère la promotion (auto-Dame) et l'avance double conditionnelle — cohérent avec la simplification actée (pas de prise en passant).
+
+### 10.8 `GenerateurCoups.genererCoupsGlissants()` — fou/tour/dame (rayons)
+
+```mermaid
+flowchart TD
+    Start(["genererCoupsGlissants(plateau, ligne, colonne, couleur, directions)"]) --> Dir["pour chaque direction de la liste"]
+    Dir --> Avance["avance d'une case dans cette direction"]
+    Avance --> Bord{"toujours dans le plateau ?"}
+    Bord -- "Non" --> Dir
+    Bord -- "Oui" --> Case{"case vide ?"}
+    Case -- "Oui" --> Ajoute["ajoute ce coup, continue a glisser"]
+    Ajoute --> Avance
+    Case -- "Non" --> Couleur{"piece adverse ?"}
+    Couleur -- "Oui" --> AjouteCapture["ajoute la capture, ARRETE cette direction"]
+    Couleur -- "Non (alliee)" --> Stop["ARRETE cette direction, rien ajoute"]
+    AjouteCapture --> Dir
+    Stop --> Dir
+    Dir -- "toutes directions testees" --> Fin(["fin"])
+```
+
+Exactement le même schéma sert au cavalier/roi (`genererCoupsSauts`), mais sans la boucle "continue à glisser" — un seul pas par direction, pas de rayon.
+
+### 10.9 `Evaluateur.evaluer()` — score matériel
+
+```mermaid
+flowchart TD
+    Start(["evaluer(plateau)"]) --> Init["score = 0"]
+    Init --> Boucle["pour chaque case (ligne, colonne) du plateau"]
+    Boucle --> Vide{"case vide ?"}
+    Vide -- "Oui" --> Boucle
+    Vide -- "Non" --> Val["valeur = table(type)\nPion=100, Cavalier=320, Fou=330,\nTour=500, Dame=900, Roi=0"]
+    Val --> Signe{"couleur == BLANC ?"}
+    Signe -- "Oui" --> Plus["score += valeur"]
+    Signe -- "Non" --> Moins["score -= valeur"]
+    Plus --> Boucle
+    Moins --> Boucle
+    Boucle -- "64 cases balayees" --> Fin(["renvoie score\n(positif = avantage Blancs)"])
+```
+
+Volontairement simple (V1) : aucune table de position, aucun bonus structurel — c'est le score utilisé par `alphabeta()` aux nœuds terminaux.
+
+---
+
+## 11. Où on en est
 
 ```mermaid
 flowchart LR
