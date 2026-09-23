@@ -435,9 +435,58 @@ xychart-beta
 
 **Plus de la moitié du temps CPU (~51,6%) est passée dans la boucle de conversion hexadécimale** — encore plus que le ">35%" donné en exemple par le cours. C'est la même fonction (`sha256()`) qui domine à la fois le temps CPU (ici) et les allocations (Séance 3, Étape 08) — deux angles différents, même conclusion. Détails : [process/13-seance4-partie1-profiling-cpu-flamegraph.md](../process/13-seance4-partie1-profiling-cpu-flamegraph.md).
 
+> **Partie 2 (Détection du Goulet Hex) considérée satisfaite** par cette même mesure — le cours demande de "constater que plus de 35% du temps CPU est gaspillé dans la conversion hex", ce qui est exactement le résultat obtenu ci-dessus.
+
 ---
 
-## 14. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java` + `Seance3ZeroAllocationTest.java`)
+## 14. Séance 4 — Partie 3 : Comparaison Binaire 64-bit
+
+`Seance4ComparaisonBinaire.java` repart de la version zéro-allocation (Séance 3) et remplace `MessageDigest.isEqual()` par une comparaison manuelle en 4 mots de 64 bits (`long`), avec **sortie anticipée** dès le premier mot différent.
+
+```mermaid
+flowchart TD
+    subgraph Avant["MessageDigest.isEqual() - Seance 3"]
+    direction TB
+    A1["Compare TOUJOURS les 32 octets\n(temps constant, anti-timing-attack)"]
+    end
+    subgraph Apres["egalise64bit() - Seance 4"]
+    direction TB
+    B1["Compare par mots de 64 bits\navec sortie anticipee"]
+    B2[">99% des candidats echouent\nau 1er octet -> sortie immediate"]
+    B1 --> B2
+    end
+
+    Decouverte["Decouverte : le gain ne vient pas que\nde la taille des mots, mais surtout\nde l'abandon du temps constant\n(inutile ici : pas de secret a proteger)"]
+
+    Avant -.->|comparaison| Decouverte
+    Apres -.->|comparaison| Decouverte
+
+    style Avant fill:#c62828,color:#fff
+    style Apres fill:#2e7d32,color:#fff
+    style Decouverte fill:#f9a825,color:#000
+```
+
+### Preuve statistique — première vraie comparaison Hyperfine à 3 versions
+
+```mermaid
+xychart-beta
+    title "Temps moyen (secondes) - execution complete z3D+Sh3n, 5 essais chacun"
+    x-axis ["Naif (Seance 1)", "Zero-allocation (Seance 3)", "Binaire 64-bit (Seance 4)"]
+    y-axis "Temps (s)" 0 --> 12
+    bar [11.161, 1.337, 1.104]
+```
+
+| Version | Temps moyen | vs Naïf | vs Séance 3 |
+|---|---|---|---|
+| Naïve (Séance 1) | 11,161 s ± 0,306 s | — | — |
+| Zéro-allocation (Séance 3) | 1,337 s ± 0,025 s | ×8,35 | — |
+| **Binaire 64-bit (Séance 4)** | **1,104 s ± 0,055 s** | **×10,11** | **×1,21** |
+
+**Gain statistiquement significatif** (intervalles ne se chevauchant pas). Détails et interprétation complète : [process/14-seance4-partie3-comparaison-binaire-64bit.md](../process/14-seance4-partie3-comparaison-binaire-64bit.md).
+
+---
+
+## 15. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java` + `Seance3ZeroAllocationTest.java` + `Seance4ComparaisonBinaireTest.java`)
 
 ```mermaid
 graph LR
@@ -481,13 +530,21 @@ graph LR
         T29["remplirCandidat : reutilisation du buffer"]
         T30["coherence avec le hash de Main.sha256()"]
     end
+    subgraph "Seance4ComparaisonBinaireTest - 6 tests"
+        T31["octetsVersLongs : conversion 1 mot"]
+        T32["octetsVersLongs : hash 32B → 4 mots"]
+        T33["egalise64bit : hashes identiques → true"]
+        T34["egalise64bit : 1er octet different → false"]
+        T35["egalise64bit : dernier octet different → false"]
+        T36["coherence avec un vrai calcul SHA-256"]
+    end
 ```
 
-**Résultat actuel : 30/30 tests passent.**
+**Résultat actuel : 36/36 tests passent.**
 
 ---
 
-## 15. Baseline mesurée — z3D vs Sh3n
+## 16. Baseline mesurée — z3D vs Sh3n
 
 ```mermaid
 xychart-beta
@@ -501,7 +558,7 @@ L'espace de recherche est ~62x plus grand pour `Sh3n` (un caractère de plus) et
 
 ---
 
-## 16. Où on en est dans le TP
+## 17. Où on en est dans le TP
 
 ```mermaid
 flowchart LR
@@ -515,9 +572,10 @@ flowchart LR
     H --> I["✅ Séance 3 Partie 2\nPadding (JOL) :\naucun effet en Java (JVM reordonne deja)"]
     I --> J["✅ Séance 3 Partie 3\nBuffers fixes :\nSh3n 10536ms → 2803ms (x3,76)"]
     J --> K["✅ Séance 3 Partie 4\nValidation : 406→1 cycle GC,\n0 alloc. attribuable au code"]
-    K --> L["✅ Séance 4 Partie 1\nFlamegraph CPU :\nsha256() = ~51,6% du temps CPU"]
-    L --> M["⬜ Séance 4 Partie 2-4\nGoulet hex, comparaison 64-bit,\npreuve statistique"]
-    M --> N["⬜ Séances suivantes :\nworkers, gRPC, SQL"]
+    K --> L["✅ Séance 4 Partie 1-2\nFlamegraph CPU :\nsha256() = ~51,6% du temps CPU"]
+    L --> M["✅ Séance 4 Partie 3\nComparaison 64-bit :\nHyperfine x10,11 vs naif (statistique)"]
+    M --> N["⬜ Séance 4 Partie 4\nPreuve statistique formelle\n+ captures pour le rapport"]
+    N --> O["⬜ Séances suivantes :\nworkers, gRPC, SQL"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
@@ -531,8 +589,9 @@ flowchart LR
     style J fill:#2e7d32,color:#fff
     style K fill:#2e7d32,color:#fff
     style L fill:#2e7d32,color:#fff
-    style M fill:#f9a825,color:#000
-    style N fill:#9e9e9e,color:#fff
+    style M fill:#2e7d32,color:#fff
+    style N fill:#f9a825,color:#000
+    style O fill:#9e9e9e,color:#fff
 ```
 
-**Séance 2 et Séance 3 terminées. Séance 4 démarrée.**
+**Séance 2 et Séance 3 terminées. Séance 4 : 3/4 parties faites.**

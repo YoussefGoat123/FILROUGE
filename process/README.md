@@ -21,6 +21,7 @@ Mis à jour à chaque modification significative du projet — un fichier par é
 | 11 | [Validation 0 allocs/op (JFR)](11-seance3-partie4-validation-zero-allocation.md) | Séance 3 — Partie 4 | ✅ |
 | 12 | [Installation Maven & Hyperfine](12-installation-maven-hyperfine.md) | Outillage (prépare Séance 4) | ✅ |
 | 13 | [Profiling CPU & Flamegraph](13-seance4-partie1-profiling-cpu-flamegraph.md) | Séance 4 — Partie 1 | ✅ |
+| 14 | [Comparaison binaire 64-bit](14-seance4-partie3-comparaison-binaire-64bit.md) | Séance 4 — Partie 3 (Partie 2 satisfaite par l'Étape 13) | ✅ |
 
 ## Voir aussi
 
