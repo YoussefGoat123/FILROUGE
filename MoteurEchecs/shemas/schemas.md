@@ -208,7 +208,28 @@ xychart-beta
 
 ---
 
-## 8. Où on en est
+## 8. Étape 3 : Localité mémoire — Bitboards (micro-optimisation)
+
+`PlateauBits` (12 `long`, un par couple couleur/type) vs `Plateau` (grille d'objets). Comparaison sur l'opération réelle d'un générateur de coups : "quelles cases sont occupées par telle couleur ?", pas une simple lecture de case.
+
+```mermaid
+xychart-beta
+    title "Temps par essai (ms, 500 000 repetitions)"
+    x-axis ["Essai 1", "Essai 2", "Essai 3", "Essai 4", "Essai 5"]
+    y-axis "Temps (ms)" 0 --> 30
+    bar [26, 19, 15, 15, 16]
+    bar [19, 14, 17, 10, 9]
+```
+
+*(première série = grille d'objets ~18,2 ms en moyenne, deuxième = bitboards ~13,8 ms — gain ~×1,3)*
+
+> **Différent de HashBreaker Séance 2** (x8-x10) : le plateau est trop petit (64 cases) pour un effet de cache — il tient en permanence en L1. Le gain ici vient du **nombre d'opérations** (16 bits parcourus vs 64 cases testées), pas de la localité mémoire au sens strict. Détails : [process/03-localite-memoire-bitboards.md](../process/03-localite-memoire-bitboards.md).
+
+> ⚠️ `PlateauBits` n'est pas encore intégré à `GenerateurCoups`/`MinimaxAlphaBeta` — mesure d'accès pur uniquement à ce stade.
+
+---
+
+## 9. Où on en est
 
 ```mermaid
 flowchart LR
@@ -216,12 +237,14 @@ flowchart LR
     B --> C["✅ Validation\n(perft=20, mat du fou, 19/19 tests)"]
     C --> D["✅ Baseline mesuree\n(~22-24K positions/s)"]
     D --> E["✅ Elagage Alpha-Beta (macro)\n÷145,9 positions a profondeur 4"]
-    E --> F["⬜ Prochains leviers :\nlocalite memoire (bitboards),\nzero-allocation (make/unmake),\nprofiling, workers,\nI/O & persistance"]
+    E --> EE["✅ Localite memoire (micro)\nBitboards : x1,3 (mecanisme different de HashBreaker)"]
+    EE --> F["⬜ Prochains leviers :\nzero-allocation (make/unmake),\nprofiling, workers,\nI/O & persistance"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
     style C fill:#2e7d32,color:#fff
     style D fill:#2e7d32,color:#fff
+    style EE fill:#2e7d32,color:#fff
     style E fill:#2e7d32,color:#fff
     style F fill:#9e9e9e,color:#fff
 ```

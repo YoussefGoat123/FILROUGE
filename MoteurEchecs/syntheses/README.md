@@ -16,3 +16,4 @@ Chaque fichier doit être **autonome** (pas seulement un lien vers `shemas/`) et
 |---|---|---|
 | 01 | Architecture & Algorithme Naïf | [01-architecture-naive.md](01-architecture-naive.md) |
 | 02 | Élagage Alpha-Beta (macro) | [02-elagage-alpha-beta.md](02-elagage-alpha-beta.md) |
+| 03 | Localité mémoire : Bitboards (micro) | [03-localite-memoire-bitboards.md](03-localite-memoire-bitboards.md) |
