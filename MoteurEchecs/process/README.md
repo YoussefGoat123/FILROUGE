@@ -1,0 +1,15 @@
+# Journal du processus d'optimisation — MoteurEchecs
+
+Même méthodologie que le TP fil rouge HashBreaker (`../../process/`) : un fichier par étape, quoi/pourquoi/résultat mesuré. Sert de matière première au rapport d'audit final (seul document réellement noté — cf. [../choix-sujet.md](../choix-sujet.md)).
+
+## Sommaire
+
+| # | Étape | Statut |
+|---|---|---|
+| 01 | [Architecture & Algorithme Naïf](01-architecture-et-algorithme-naif.md) | ✅ |
+
+## Voir aussi
+
+- [../README.md](../README.md) — vue d'ensemble du projet, build & run
+- [../syntheses/](../syntheses/README.md) — synthèses "ce qu'il faut retenir" à chaque étape clé
+- [../../choix-sujet.md](../../choix-sujet.md) — choix du sujet, cohérence avec le barème, roadmap

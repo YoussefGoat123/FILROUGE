@@ -78,18 +78,18 @@ Calquée sur la progression suivie pour HashBreaker, à ajuster selon le calendr
 
 ```mermaid
 flowchart LR
-    A["Étape 1\nMise en place\nPlateau + génération de coups\n+ Minimax naïf + baseline\n(Hyperfine, axe 1)"] --> B["Étape 2\nLocalité mémoire\nBitboards vs représentation objet"]
-    B --> C["Étape 3\nZéro-allocation\nmake/unmake move"]
-    C --> D["Étape 4\nProfiling réel\nFlamegraph/pprof, Hot Path\n(axe 2)"]
-    D --> E["Étape 5\nÉlagage Alpha-Beta\nmacro-optimisation +\nearly cancellation"]
-    E --> F["Étape 6\nTable de transposition\nLRU bornée (axe 3)"]
-    F --> G["Étape 7\nRecherche parallèle\nworker pool + atomique (axe 3)"]
-    G --> H["Étape 8\nI/O & Persistance\nSQL indexé + gRPC (axe 3)"]
-    H --> I["Étape 9\nÉchec constructif\nexpérience ratée, chiffrée\n(axe 4)"]
-    I --> J["Étape 10\nReproductibilité\nscript one-shot + tableau\nfinal (axe 5)"]
-    J --> K["Étape 11\nRapport d'audit final\nconsolidé (PDF/MD)"]
+    A["✅ Étape 1\nMise en place\nPlateau + génération de coups\n+ Minimax naïf + baseline\n(~22-24K positions/s)"] --> B["⬜ Étape 2\nLocalité mémoire\nBitboards vs représentation objet"]
+    B --> C["⬜ Étape 3\nZéro-allocation\nmake/unmake move"]
+    C --> D["⬜ Étape 4\nProfiling réel\nFlamegraph/pprof, Hot Path\n(axe 2)"]
+    D --> E["⬜ Étape 5\nÉlagage Alpha-Beta\nmacro-optimisation +\nearly cancellation"]
+    E --> F["⬜ Étape 6\nTable de transposition\nLRU bornée (axe 3)"]
+    F --> G["⬜ Étape 7\nRecherche parallèle\nworker pool + atomique (axe 3)"]
+    G --> H["⬜ Étape 8\nI/O & Persistance\nSQL indexé + gRPC (axe 3)"]
+    H --> I["⬜ Étape 9\nÉchec constructif\nexpérience ratée, chiffrée\n(axe 4)"]
+    I --> J["⬜ Étape 10\nReproductibilité\nscript one-shot + tableau\nfinal (axe 5)"]
+    J --> K["⬜ Étape 11\nRapport d'audit final\nconsolidé (PDF/MD)"]
 
-    style A fill:#9e9e9e,color:#fff
+    style A fill:#2e7d32,color:#fff
     style B fill:#9e9e9e,color:#fff
     style C fill:#9e9e9e,color:#fff
     style D fill:#9e9e9e,color:#fff
@@ -102,7 +102,7 @@ flowchart LR
     style K fill:#9e9e9e,color:#fff
 ```
 
-Toutes les étapes sont **à réaliser** (grisées intentionnellement) — ce document sert de plan de route, pas de journal d'avancement. Un suivi détaillé (type `process/` et `syntheses/` de HashBreaker) sera mis en place dès le démarrage effectif du projet, en gardant à l'esprit que ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 11), puisque c'est ce document-là, et lui seul, qui sera noté.
+**Étape 1 terminée** (2026-09-23) — voir [MoteurEchecs/process/01-architecture-et-algorithme-naif.md](MoteurEchecs/process/01-architecture-et-algorithme-naif.md). Les étapes suivantes restent à réaliser. Un suivi détaillé (type `process/` et `syntheses/` de HashBreaker) sera mis en place dès le démarrage effectif du projet, en gardant à l'esprit que ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 11), puisque c'est ce document-là, et lui seul, qui sera noté.
 
 > 📌 **Rappel explicite (2026-09-23)** : comme pour HashBreaker, il faudra produire des **synthèses de résultats** à chaque étape clé (pas seulement un rapport final écrit d'un coup à la fin) — un tableau chiffré avant/après par levier appliqué, mis à jour au fur et à mesure. C'est cette accumulation progressive de synthèses qui alimentera directement le tableau de synthèse comparatif final (Axe 5) et le rapport d'audit — pas une reconstruction a posteriori en fin de projet, qui serait bien moins fiable et plus difficile à sourcer.
 
@@ -121,10 +121,10 @@ Toutes les étapes sont **à réaliser** (grisées intentionnellement) — ce do
 | **Code source complet** (dépôt Git ou archive) — non noté directement, mais rendu obligatoire (confirmé par le formateur en live) comme preuve de reproductibilité | Pièce à conviction |
 | *(Bonus)* `constitution.md` à la racine, respectant les 4 directives | Bonus +2 |
 
-## Décisions encore ouvertes
+## Décisions
 
-> ⏸️ **Reportées volontairement à plus tard** (2026-09-22) — ne pas trancher tant que HashBreaker n'est pas assez avancé pour en tirer les enseignements. Revenir sur cette section avant de démarrer le code du moteur d'échecs.
+- ✅ **Langage : Java** (tranché le 2026-09-23) — cohérent avec HashBreaker, toolchain déjà opérationnelle (Maven, JUnit, JFR, JOL, Hyperfine).
+- ✅ **Portée des règles (V1) : simplifiée** (tranché le 2026-09-23) — pas de roque ni de prise en passant au départ, promotion automatique en Dame. Ajoutables plus tard si besoin.
+- ⏸️ **Interface** : encore ouvert — moteur en ligne de commande (échange de positions FEN) vs interface graphique minimale. Pas bloquant pour l'instant (le moteur s'utilise directement via `Main.java`).
 
-- **Langage** : à confirmer (Java, pour rester cohérent avec HashBreaker, ou un autre langage si l'exercice de comparaison inter-langage a un intérêt pédagogique).
-- **Portée des règles d'échecs** : version complète (roque, prise en passant, promotion) ou sous-ensemble simplifié pour se concentrer sur la performance plutôt que l'exhaustivité des règles.
-- **Interface** : moteur en ligne de commande (échange de positions FEN) vs interface graphique minimale.
+Le code a démarré dans [MoteurEchecs/](MoteurEchecs/) — voir [MoteurEchecs/README.md](MoteurEchecs/README.md) pour le détail de l'architecture, et [MoteurEchecs/process/](MoteurEchecs/process/README.md) / [MoteurEchecs/syntheses/](MoteurEchecs/syntheses/README.md) pour le suivi étape par étape (mêmes conventions que HashBreaker).
