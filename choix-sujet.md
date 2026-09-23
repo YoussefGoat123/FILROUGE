@@ -104,6 +104,8 @@ flowchart LR
 
 Toutes les étapes sont **à réaliser** (grisées intentionnellement) — ce document sert de plan de route, pas de journal d'avancement. Un suivi détaillé (type `process/` et `syntheses/` de HashBreaker) sera mis en place dès le démarrage effectif du projet, en gardant à l'esprit que ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 11), puisque c'est ce document-là, et lui seul, qui sera noté.
 
+> 📌 **Rappel explicite (2026-09-23)** : comme pour HashBreaker, il faudra produire des **synthèses de résultats** à chaque étape clé (pas seulement un rapport final écrit d'un coup à la fin) — un tableau chiffré avant/après par levier appliqué, mis à jour au fur et à mesure. C'est cette accumulation progressive de synthèses qui alimentera directement le tableau de synthèse comparatif final (Axe 5) et le rapport d'audit — pas une reconstruction a posteriori en fin de projet, qui serait bien moins fiable et plus difficile à sourcer.
+
 ## Livrables attendus (alignés sur le barème)
 
 | Livrable | Axe(s) du barème |

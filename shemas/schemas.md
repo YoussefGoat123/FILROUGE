@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (Séance 1, Séance 2 et Séance 3 complètes)
+# Schémas — État actuel du projet (Séance 1-3 complètes, Séance 4 démarrée)
 
 Diagrammes Mermaid de ce qui a été produit jusqu'ici : structure du projet, code de `Main.java` et `Seance2LocaliteMemoire.java`, flux d'exécution et couverture des tests.
 
@@ -408,7 +408,36 @@ flowchart LR
 
 ---
 
-## 13. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java` + `Seance3ZeroAllocationTest.java`)
+## 13. Séance 4 — Partie 1 : Profiling CPU & Flamegraph
+
+Réutilise l'enregistrement JFR naïf de la Séance 3 (aucun nouveau run) — converti en flamegraph HTML interactif via l'outil officiel `jfr-converter.jar` (async-profiler).
+
+```mermaid
+flowchart LR
+    JFR["seance3-diagnostic-naif.jfr\n(deja enregistre en Seance 3)"] --> Conv["jfr-converter.jar --wall -o html"]
+    Conv --> HTML["seance4-flamegraph-cpu-naif.html\nflamegraph interactif"]
+
+    style JFR fill:#2d6cdf,color:#fff
+    style HTML fill:#2e7d32,color:#fff
+```
+
+**Piège rencontré** : l'option `--cpu` du convertisseur produisait un flamegraph vide (aucune frame). Les données existaient pourtant bien dans le `.jfr` (vérifié via `jfr print`). Contourné avec `--wall` (profil wall-clock, quasi identique au CPU pour notre programme mono-thread sans I/O), qui a fonctionné correctement.
+
+### Répartition du temps CPU — confirme et renforce le diagnostic d'allocations
+
+```mermaid
+xychart-beta
+    title "Echantillons CPU par frame (sur 946 au total)"
+    x-axis ["sha256() ligne 94\n(boucle hex)", "craquer()\n(candidat+comparaison)", "Reste du programme"]
+    y-axis "Echantillons" 0 --> 500
+    bar [488, 39, 419]
+```
+
+**Plus de la moitié du temps CPU (~51,6%) est passée dans la boucle de conversion hexadécimale** — encore plus que le ">35%" donné en exemple par le cours. C'est la même fonction (`sha256()`) qui domine à la fois le temps CPU (ici) et les allocations (Séance 3, Étape 08) — deux angles différents, même conclusion. Détails : [process/13-seance4-partie1-profiling-cpu-flamegraph.md](../process/13-seance4-partie1-profiling-cpu-flamegraph.md).
+
+---
+
+## 14. Couverture des tests (`MainTest.java` + `Seance2LocaliteMemoireTest.java` + `Seance3ZeroAllocationTest.java`)
 
 ```mermaid
 graph LR
@@ -458,7 +487,7 @@ graph LR
 
 ---
 
-## 14. Baseline mesurée — z3D vs Sh3n
+## 15. Baseline mesurée — z3D vs Sh3n
 
 ```mermaid
 xychart-beta
@@ -472,7 +501,7 @@ L'espace de recherche est ~62x plus grand pour `Sh3n` (un caractère de plus) et
 
 ---
 
-## 15. Où on en est dans le TP
+## 16. Où on en est dans le TP
 
 ```mermaid
 flowchart LR
@@ -486,7 +515,9 @@ flowchart LR
     H --> I["✅ Séance 3 Partie 2\nPadding (JOL) :\naucun effet en Java (JVM reordonne deja)"]
     I --> J["✅ Séance 3 Partie 3\nBuffers fixes :\nSh3n 10536ms → 2803ms (x3,76)"]
     J --> K["✅ Séance 3 Partie 4\nValidation : 406→1 cycle GC,\n0 alloc. attribuable au code"]
-    K --> L["⬜ Séances suivantes :\nprofiling, workers, gRPC, SQL"]
+    K --> L["✅ Séance 4 Partie 1\nFlamegraph CPU :\nsha256() = ~51,6% du temps CPU"]
+    L --> M["⬜ Séance 4 Partie 2-4\nGoulet hex, comparaison 64-bit,\npreuve statistique"]
+    M --> N["⬜ Séances suivantes :\nworkers, gRPC, SQL"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
@@ -499,7 +530,9 @@ flowchart LR
     style I fill:#2e7d32,color:#fff
     style J fill:#2e7d32,color:#fff
     style K fill:#2e7d32,color:#fff
-    style L fill:#9e9e9e,color:#fff
+    style L fill:#2e7d32,color:#fff
+    style M fill:#f9a825,color:#000
+    style N fill:#9e9e9e,color:#fff
 ```
 
-**Séance 2 et Séance 3 terminées.**
+**Séance 2 et Séance 3 terminées. Séance 4 démarrée.**

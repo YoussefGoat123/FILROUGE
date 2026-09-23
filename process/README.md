@@ -20,6 +20,7 @@ Mis à jour à chaque modification significative du projet — un fichier par é
 | 10 | [Buffers fixes / Zéro-allocation](10-seance3-partie3-buffers-fixes.md) | Séance 3 — Partie 3 | ✅ |
 | 11 | [Validation 0 allocs/op (JFR)](11-seance3-partie4-validation-zero-allocation.md) | Séance 3 — Partie 4 | ✅ |
 | 12 | [Installation Maven & Hyperfine](12-installation-maven-hyperfine.md) | Outillage (prépare Séance 4) | ✅ |
+| 13 | [Profiling CPU & Flamegraph](13-seance4-partie1-profiling-cpu-flamegraph.md) | Séance 4 — Partie 1 | ✅ |
 
 ## Voir aussi
 

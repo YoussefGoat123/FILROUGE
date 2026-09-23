@@ -12,7 +12,8 @@ import java.security.NoSuchAlgorithmException;
  */
 public class Main {
 
-    static String alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    // '@' ajoute a la fin (pas au milieu) pour ne pas decaler les indices existants des tests
+    static String alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@";
 
     public static void main(String[] args) throws NoSuchAlgorithmException {
 

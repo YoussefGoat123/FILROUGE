@@ -72,16 +72,18 @@ class MainTest {
 
     @Test
     void incrementer_avecUneSeuleRetenue() {
-        // "aa9" (dernier caractere de l'alphabet en position 2) -> "aba"
-        int[] buffer = {0, 0, 61};
+        // dernier caractere de l'alphabet en position 2 -> retenue propagee en position 1
+        int dernierIndice = Main.alphabet.length() - 1;
+        int[] buffer = {0, 0, dernierIndice};
         Main.incrementer(buffer);
         assertArrayEquals(new int[]{0, 1, 0}, buffer);
     }
 
     @Test
     void incrementer_avecRetenueEnChaine() {
-        // "a99" -> "baa" (deux positions saturees d'un coup)
-        int[] buffer = {0, 61, 61};
+        // deux positions saturees d'un coup -> retenue propagee jusqu'en position 0
+        int dernierIndice = Main.alphabet.length() - 1;
+        int[] buffer = {0, dernierIndice, dernierIndice};
         Main.incrementer(buffer);
         assertArrayEquals(new int[]{1, 0, 0}, buffer);
     }
@@ -90,7 +92,8 @@ class MainTest {
     void incrementer_debordementComplet_reboucleSansPlanter() {
         // buffer deja au max partout : la retenue depasse la premiere position.
         // Comportement actuel : on rebrouille silencieusement a [0,0,0] ("aaa").
-        int[] buffer = {61, 61, 61};
+        int dernierIndice = Main.alphabet.length() - 1;
+        int[] buffer = {dernierIndice, dernierIndice, dernierIndice};
         Main.incrementer(buffer);
         assertArrayEquals(new int[]{0, 0, 0}, buffer);
     }
