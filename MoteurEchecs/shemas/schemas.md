@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (Étapes 1 à 7)
+# Schémas — État actuel du projet (Étapes 1 à 8)
 
 Diagrammes Mermaid de l'architecture et du fonctionnement du moteur. Même conventions que HashBreaker (`../../shemas/schemas.md`).
 
@@ -355,9 +355,32 @@ xychart-beta
 
 ---
 
-## 13. Fonctionnement des méthodes principales (état actuel du code)
+## 13. Étape 8 : Tri des coups (MVV-LVA) — macro-optimisation
 
-### 13.1 `MinimaxAlphaBeta.meilleurCoup()` — point d'entrée de la recherche
+Exploite directement le Hot Path mesuré à l'Étape 7 : la génération/légalité de coups (~90% du CPU) est proportionnelle au **nombre de positions visitées**. Le tri MVV-LVA (`MinimaxAlphaBeta.trierCoups()`) explore les captures avant les coups calmes, pour que les coupures alpha-beta arrivent plus tôt.
+
+```mermaid
+flowchart LR
+    Avant["Avant : ordre arbitraire\ncoupures tardives"] --> Apres["Apres : captures triees en premier\n(score = 10*valeur(cible) - valeur(attaquant))"]
+    Apres --> Coupe["Coupures alpha-beta\nplus precoces"]
+
+    style Avant fill:#c62828,color:#fff
+    style Coupe fill:#2e7d32,color:#fff
+```
+
+| Mesure | Avant | Après | Facteur |
+|---|---|---|---|
+| Positions évaluées | 41 554 | 25 319 | **−39 %** |
+| Temps (Hyperfine) | 887,1 ms ± 43,0 ms | 709,8 ms ± 23,1 ms | **×1,25** |
+| Échantillons d'allocation (JFR) | 120 | 132 | +10 % *(coût du tri lui-même)* |
+
+**Écart positions vs temps** : −39% de positions mais seulement ×1,25 sur le temps — le tri lui-même a un coût (comparateur exécuté à chaque nœud), qui mange une partie du gain. Résultat honnête, pas gonflé : c'est un vrai levier macro (même famille que l'alpha-beta de l'Étape 2), mais son bénéfice net est amorti par son propre coût d'exécution. Détails : [process/08-tri-coups-move-ordering.md](../process/08-tri-coups-move-ordering.md).
+
+---
+
+## 14. Fonctionnement des méthodes principales (état actuel du code)
+
+### 14.1 `MinimaxAlphaBeta.meilleurCoup()` — point d'entrée de la recherche
 
 ```mermaid
 flowchart TD
@@ -378,7 +401,7 @@ flowchart TD
 
 Pas de coupure à la racine (il faut comparer tous les coups candidats), mais `alpha`/`beta` se resserrent à chaque coup testé.
 
-### 13.2 `MinimaxAlphaBeta.alphabeta()` — le cœur récursif avec élagage
+### 14.2 `MinimaxAlphaBeta.alphabeta()` — le cœur récursif avec élagage
 
 ```mermaid
 flowchart TD
@@ -405,7 +428,7 @@ flowchart TD
 
 Même fonction pour BLANC (maximise) et NOIR (minimise) selon `plateau.trait()` — diagramme simplifié en un seul chemin, le code a deux branches symétriques (`Math.max`/`alpha` vs `Math.min`/`beta`).
 
-### 13.3 `GenerateurCoups.coupsLegaux()` — filtrage pseudo-légal → légal
+### 14.3 `GenerateurCoups.coupsLegaux()` — filtrage pseudo-légal → légal
 
 ```mermaid
 flowchart TD
@@ -423,7 +446,7 @@ flowchart TD
 
 Chaque coup pseudo-légal est essayé puis annulé sur la même instance de plateau (make/unmake) — plus aucune copie de grille ici depuis l'Étape 4.
 
-### 13.4 `GenerateurCoups.caseAttaquee()` — détection directe (réécrite à l'Étape 4)
+### 14.4 `GenerateurCoups.caseAttaquee()` — détection directe (réécrite à l'Étape 4)
 
 ```mermaid
 flowchart TD
@@ -445,7 +468,7 @@ flowchart TD
 
 Chaque test regarde directement les cases pertinentes (aucune liste de coups générée) — la correction qui a fait passer les allocations de 600 à 120 échantillons (Étape 4).
 
-### 13.5 `Plateau.jouer()` / `annuler()` — le mécanisme make/unmake
+### 14.5 `Plateau.jouer()` / `annuler()` — le mécanisme make/unmake
 
 ```mermaid
 sequenceDiagram
@@ -466,7 +489,7 @@ sequenceDiagram
 
 Une seule instance de `Plateau` traverse tout l'arbre de recherche — c'est le "buffer réutilisé" de l'Étape 4, l'équivalent échecs du `[8]byte` du cours.
 
-### 13.6 `GenerateurCoups.coupsPseudoLegaux()` — génération brute, par type de pièce
+### 14.6 `GenerateurCoups.coupsPseudoLegaux()` — génération brute, par type de pièce
 
 ```mermaid
 flowchart TD
@@ -491,7 +514,7 @@ flowchart TD
 
 Balaie les 64 cases une seule fois, délègue par type de pièce — pas encore optimisé (candidat naturel pour les bitboards, Étape 3, une fois intégrés).
 
-### 13.7 `GenerateurCoups.genererCoupsPion()` — le cas le plus riche en règles
+### 14.7 `GenerateurCoups.genererCoupsPion()` — le cas le plus riche en règles
 
 ```mermaid
 flowchart TD
@@ -510,7 +533,7 @@ flowchart TD
 
 Seule méthode qui gère la promotion (auto-Dame) et l'avance double conditionnelle — cohérent avec la simplification actée (pas de prise en passant).
 
-### 13.8 `GenerateurCoups.genererCoupsGlissants()` — fou/tour/dame (rayons)
+### 14.8 `GenerateurCoups.genererCoupsGlissants()` — fou/tour/dame (rayons)
 
 ```mermaid
 flowchart TD
@@ -531,7 +554,7 @@ flowchart TD
 
 Exactement le même schéma sert au cavalier/roi (`genererCoupsSauts`), mais sans la boucle "continue à glisser" — un seul pas par direction, pas de rayon.
 
-### 13.9 `Evaluateur.evaluer()` — score matériel
+### 14.9 `Evaluateur.evaluer()` — score matériel
 
 ```mermaid
 flowchart TD
@@ -552,7 +575,7 @@ Volontairement simple (V1) : aucune table de position, aucun bonus structurel �
 
 ---
 
-## 14. Où on en est
+## 15. Où on en est
 
 ```mermaid
 flowchart LR
@@ -565,7 +588,8 @@ flowchart LR
     ZA --> SP["✅ Struct padding (JOL)\nverifie : rien a corriger\n(Coup=0 perte, Piece/InfoAnnulation=4B incompressibles)"]
     SP --> PA["✅ Pre-allocation capacite\n(listes de Coup) : x1,11"]
     PA --> PR["✅ Profiling reel (Flamegraph)\ncaseAttaquee=59-72% CPU (3 runs),\nevaluation<4% (valide Etape 4)"]
-    PR --> F["⬜ Prochains leviers :\ntable de transposition,\nworkers, I/O & persistance"]
+    PR --> TC["✅ Tri des coups (MVV-LVA, macro)\npositions -39%, temps x1,25"]
+    TC --> F["⬜ Prochains leviers :\ntable de transposition,\nworkers, I/O & persistance"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
@@ -577,5 +601,6 @@ flowchart LR
     style SP fill:#2e7d32,color:#fff
     style PA fill:#2e7d32,color:#fff
     style PR fill:#2e7d32,color:#fff
+    style TC fill:#2e7d32,color:#fff
     style F fill:#9e9e9e,color:#fff
 ```

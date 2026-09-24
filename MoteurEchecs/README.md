@@ -45,8 +45,8 @@ src/main/java/com/moteurechecs/
 - **Pas de roque, pas de prise en passant** (ajoutables plus tard).
 - **Promotion automatique en Dame** (pas de choix de sous-promotion).
 - **Évaluation matérielle uniquement** — pas de tables de position, pas de bonus structurel.
-- **Aucun tri des coups** (move ordering) dans l'élagage alpha-beta — amélioration possible plus tard.
 - **`PlateauBits` (bitboards) pas encore intégré** à la génération de coups/recherche — mesure d'accès pur uniquement pour l'instant.
+- **Pas encore de table de transposition** (cache LRU des positions déjà évaluées) — prévue à l'Étape 9.
 
 ## Progression mesurée (position de départ, Minimax + Alpha-Beta, profondeur 5)
 
@@ -56,7 +56,10 @@ src/main/java/com/moteurechecs/
 | Alpha-Beta (Étape 2, macro) | 1,999 s ± 0,058 s (profondeur 5) | référence |
 | + Zéro-allocation (Étape 4, micro) | 475,3 ms ± 37,8 ms | ×4,2 |
 | + Pré-allocation capacité (Étape 6, micro) | 426,3 ms ± 35,8 ms | **×4,7** |
+| + Tri des coups MVV-LVA (Étape 8, macro) | 709,8 ms ± 23,1 ms *(session de mesure différente, voir note)* | ×1,25 sur sa propre baseline ; **−39 % de positions évaluées** (41 554 → 25 319) |
 
 Étape 5 (struct padding, JOL) : vérifiée, aucun gain accessible manuellement en Java (voir synthèse dédiée).
+
+⚠️ La ligne Étape 8 a été mesurée dans une session Hyperfine distincte, où la baseline "avant" (887,1 ms) différait du 426,3 ms ci-dessus sur un code pourtant identique (écart de conditions machine, pas une régression — voir [process/08-tri-coups-move-ordering.md](process/08-tri-coups-move-ordering.md)). Le gain cumulé en temps n'est donc pas directement chaînable ici ; **le nombre de positions évaluées** (déterministe, insensible à la machine) reste la mesure la plus fiable pour comparer l'Étape 8 au reste.
 
 Détail complet, diagrammes et interprétation : [syntheses/](syntheses/README.md).

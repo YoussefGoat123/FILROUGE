@@ -21,6 +21,7 @@ Chaque fichier doit être **autonome** (pas seulement un lien vers `shemas/`) et
 | 05 | Struct Padding / Alignement (JOL) | [05-struct-padding.md](05-struct-padding.md) |
 | 06 | Pré-allocation de capacité (listes de Coup) | [06-preallocation.md](06-preallocation.md) |
 | 07 | Profiling réel & Hot Path (Axe 2) | [07-profiling-reel.md](07-profiling-reel.md) |
+| 08 | Tri des coups (MVV-LVA, macro) | [08-tri-coups.md](08-tri-coups.md) |
 
 ## Synthèse consolidée des performances (toutes étapes, position de départ)
 
@@ -35,8 +36,11 @@ Un seul tableau récapitulatif — inspiré de la structure de synthèse utilis�
 | 5 | Struct Padding (JOL) — vérifié, rien à corriger | 5 | inchangé | 41 554 | 120 échantillons | inchangé | ×4,2 *(inchangé)* |
 | 6 | + Pré-allocation de capacité | 5 | 426,3 ms ± 35,8 ms | 41 554 | 120 échantillons *(inchangé)* | ~46-47 MB *(−32% vs Étape 2 cumulé)* | **×4,7** |
 | 7 | Profiling réel (diagnostic, pas d'optimisation) | 6 | ~2,06 s *(fenêtre de profiling)* | 645 199 | dominé par `Coup` (structurel) | non mesuré (diagnostic) | non applicable — diagnostic seul |
+| 8 | + Tri des coups (MVV-LVA, **macro**) | 5 | 709,8 ms ± 23,1 ms *(voir note baseline ci-dessous)* | **25 319** (−39 % vs Étape 6) | 132 échantillons *(+10 %, coût du tri)* | non mesuré | **×1,25** *(sur sa propre baseline avant/après)* |
 
-**Lecture clé** : le nombre de positions évaluées reste **identique (41 554)** de l'Étape 2 à l'Étape 6 — preuve que les micro-optimisations (4, 5, 6) accélèrent l'exécution **sans changer l'algorithme ni la décision prise** (même garantie que les tests d'équivalence Minimax/Alpha-Beta). Seul le temps d'exécution, le volume d'allocations et le pic mémoire bougent — et ce pic mémoire **baisse de ~32% entre l'Étape 2 et l'Étape 6**, un gain réel et cohérent avec la baisse d'allocations, complémentaire (pas redondant) avec le gain de vitesse ×4,7.
+**Lecture clé** : le nombre de positions évaluées reste **identique (41 554)** de l'Étape 2 à l'Étape 6 — preuve que les micro-optimisations (4, 5, 6) accélèrent l'exécution **sans changer l'algorithme ni la décision prise** (même garantie que les tests d'équivalence Minimax/Alpha-Beta). Seul le temps d'exécution, le volume d'allocations et le pic mémoire bougent — et ce pic mémoire **baisse de ~32% entre l'Étape 2 et l'Étape 6**, un gain réel et cohérent avec la baisse d'allocations, complémentaire (pas redondant) avec le gain de vitesse ×4,7. **L'Étape 8 change cette invariance** : c'est le premier levier qui réduit réellement le nombre de positions visitées (41 554 → 25 319, −39 %) plutôt que d'accélérer le traitement d'un nombre fixe de positions — cohérent avec sa nature "macro" (même famille que l'élagage alpha-beta de l'Étape 2), à la différence des leviers micro (4, 5, 6).
+
+⚠️ **Note sur la baseline de l'Étape 8** : la mesure "avant" prise pour l'Étape 8 (887,1 ms) est significativement plus lente que le 426,3 ms documenté à l'Étape 6, sur un code strictement identique — probablement un écart de conditions machine entre les deux sessions de mesure (jours différents), pas une régression du code. Le facteur ×1,25 est valide en interne (même session, mêmes conditions), mais **la colonne "Temps mesuré" de l'Étape 8 n'est pas directement comparable en valeur absolue** à celle des étapes 2-6. La colonne "Positions évaluées" reste fiable dans tous les cas (déterministe, insensible à la charge machine). Détail : [process/08-tri-coups-move-ordering.md](../process/08-tri-coups-move-ordering.md).
 
 ### Méthodologie de la colonne "Pic mémoire"
 

@@ -32,7 +32,8 @@ public class Evaluateur {
         return score;
     }
 
-    private static int valeur(TypePiece type) {
+    // publique : reutilisee par MinimaxAlphaBeta pour le tri MVV-LVA (Etape 8)
+    public static int valeur(TypePiece type) {
         return switch (type) {
             case PION -> 100;
             case CAVALIER -> 320;
