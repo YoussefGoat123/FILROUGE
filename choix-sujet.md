@@ -67,7 +67,7 @@ Les garde-fous d'exemple donnés pour le bonus `constitution.md` sont très spé
 | **Localité mémoire / cache** | Bitboards tiennent dans un seul registre 64-bit ; tables de position (piece-square tables) en tableaux contigus |
 | **Compromis espace-temps** | Table de transposition = mémoïsation (+ RAM, - CPU), exactement la catégorie vue en J1_AM |
 | **Profiling** | Identifier le vrai Hot Path : génération de coups vs évaluation vs tri des coups (l'ordre de tri des coups impacte fortement l'efficacité de l'élagage) |
-| **Workers bornés / parallélisme** | Recherche parallèle sur plusieurs branches de l'arbre (ex: split au niveau racine, ou Lazy SMP) |
+| **Workers bornés / parallélisme** | Recherche parallèle sur plusieurs branches de l'arbre (root splitting via `ExecutorService.invokeAll()`, borné à `Runtime.getRuntime().availableProcessors()`) — théorie posée dans [compréhension/comprendre-concurrence-threads-verrous.md](compréhension/comprendre-concurrence-threads-verrous.md) et [compréhension/comprendre-workerpools-pipelines-async.md](compréhension/comprendre-workerpools-pipelines-async.md) (J3_AM/J3_PM) |
 | **Loi d'Amdahl** | Vérifier quelle portion (génération, éval, ou recherche) domine réellement avant de paralléliser — même piège que celui découvert en Séance 2 de HashBreaker |
 | **Streaming binaire / SQL** (requis — axe 3 du barème, 5 pts) | Exposer le moteur en service (gRPC) et indexer une base de parties (Zobrist hashing) pour un livre d'ouvertures, avec preuve `EXPLAIN ANALYZE` |
 | **Mise en cache bornée (LRU)** (requis — axe 3 du barème) | Table de transposition avec politique de remplacement explicite, pas une hash map non bornée |

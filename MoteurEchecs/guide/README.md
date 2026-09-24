@@ -70,23 +70,25 @@ Ouvrir ensuite le `.html` généré dans un navigateur (double-clic, ou `Start-P
 ## Benchmarker avec Hyperfine
 
 ```
-hyperfine --warmup 1 --runs 5 scripts\run-main.cmd
+hyperfine --warmup 1 --runs 5 scripts\run-diagnostic-allocations.cmd
 ```
+
+**⚠️ Ne pas benchmarker `run-main.cmd`** : `Main.java` fait tourner le Minimax **naïf** en plus de l'Alpha-Beta (profondeur 4 naïf seul ≈ 8,8 s) — un Hyperfine dessus donnerait ~9-10 s par run, incohérent avec les chiffres cités dans `syntheses/` (ex: 426,3 ms à l'Étape 6). Toutes les mesures Hyperfine documentées dans ce projet utilisent `DiagnosticAllocations` (Alpha-Beta seul, profondeur 5) — toujours benchmarker le même point d'entrée que celui réellement cité dans la synthèse de l'étape en cours, pas `run-main.cmd`.
 
 **⚠️ Piège connu sur cette machine** : si le chemin du projet contient des espaces (ex: `OPTIMISATIONS PERFORMANCES BACKEND`), Hyperfine casse en découpant la commande au premier espace. Contournement : créer un petit lanceur `.cmd` **sans espace dans son propre chemin** (ex: directement dans `C:\Users\<toi>\`) qui appelle le vrai script :
 
 ```bat
 @echo off
-call "C:\chemin\complet\avec\espaces\MoteurEchecs\scripts\run-main.cmd"
+call "C:\chemin\complet\avec\espaces\MoteurEchecs\scripts\run-diagnostic-allocations.cmd"
 ```
 
-Puis pointer Hyperfine vers ce lanceur plutôt que directement vers `scripts\run-main.cmd`.
+Puis pointer Hyperfine vers ce lanceur plutôt que directement vers `scripts\run-diagnostic-allocations.cmd`.
 
 ### Scripts disponibles dans `scripts/`
 
 | Script | Lance |
 |---|---|
-| `run-main.cmd` | `Main.java` (comparaison naïf vs Alpha-Beta) |
+| `run-main.cmd` | `Main.java` (comparaison naïf vs Alpha-Beta, affichage console — **pas pour Hyperfine**, inclut le naïf profondeur 4 ~8,8 s) |
 | `run-diagnostic-allocations.cmd` | `DiagnosticAllocations` (Alpha-Beta seul, profondeur 5 — pour profiling/Hyperfine) |
 | `run-diagnostic-profiling-reel.cmd` | `DiagnosticProfilingReel` (Alpha-Beta seul, profondeur 6 — pour profiling CPU/Flamegraph) |
 | `run-etape-localite-memoire.cmd` | `EtapeLocaliteMemoire` (comparaison objets vs bitboards) |
