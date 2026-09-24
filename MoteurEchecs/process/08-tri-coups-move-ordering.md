@@ -54,3 +54,4 @@ Mesuré sur `DiagnosticAllocations` (Alpha-Beta seul, profondeur 5, position de 
 - [src/main/java/com/moteurechecs/recherche/MinimaxAlphaBeta.java](../src/main/java/com/moteurechecs/recherche/MinimaxAlphaBeta.java) (modifié en place)
 - [src/main/java/com/moteurechecs/evaluation/Evaluateur.java](../src/main/java/com/moteurechecs/evaluation/Evaluateur.java) (`valeur()` rendue publique)
 - [profiling/etape8-avant-hyperfine.md](../profiling/etape8-avant-hyperfine.md), [profiling/etape8-apres-hyperfine.md](../profiling/etape8-apres-hyperfine.md), [profiling/etape8-diagnostic-apres.jfr](../profiling/etape8-diagnostic-apres.jfr)
+- `profiling/etape8-avant-flamegraph.html`/`.png` (reconstruit via worktree git sur le commit `cb8650d`, état Étape 6) et `profiling/etape8-flamegraph.html`/`.png` (état après tri) — comparaison visuelle directe, captures via Edge headless

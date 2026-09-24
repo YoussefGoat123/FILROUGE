@@ -16,6 +16,14 @@ flowchart TD
     style Flame fill:#2e7d32,color:#fff
 ```
 
+## Flamegraph réel (capture d'écran)
+
+![Flamegraph Étape 7 - Profiling CPU réel](../profiling/etape7-flamegraph.png)
+
+Capture statique du flamegraph interactif généré via `jfr-converter.jar --wall` (async-profiler). Les barres larges de `caseAttaquee`/`roiEnEchec`/`coupsLegaux` sautent immédiatement aux yeux — c'est visuellement la première preuve du Hot Path, avant même de lire le tableau de pourcentages. Version interactive (zoom, recherche) : `profiling/etape7-flamegraph.html`.
+
+⚠️ **Nuance honnête** : cette image inclut les frames `jdk/jfr/internal/*` visibles à droite (le mécanisme JFR qui s'auto-enregistre) — contrairement au tableau de pourcentages ci-dessous, qui a filtré ces frames (139/142 échantillons retenus, code `com.moteurechecs` uniquement). *Pourquoi : `jfr-converter.jar` agrège tous les threads du `.jfr` sans filtre, le tableau lui a été calculé à la main avec `grep "com.moteurechecs"` — écart mineur (3/142 échantillons, ~2%), l'image reste indicative.*
+
 ## Répartition mesurée du temps CPU — Run 1 (139 échantillons applicatifs, détail dans `process/`)
 
 ```mermaid

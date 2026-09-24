@@ -71,3 +71,4 @@ Le fait que `caseAttaquee()` reste à ~58 % **même après** l'avoir rendue zér
 - [scripts/run-diagnostic-profiling-reel.cmd](../scripts/run-diagnostic-profiling-reel.cmd)
 - `profiling/etape7-profiling-cpu.jfr` (enregistrement brut)
 - `profiling/etape7-flamegraph.html` (flamegraph interactif, généré via `jfr-converter.jar --wall`)
+- `profiling/etape7-flamegraph.png` (capture d'écran statique, via Edge headless `--screenshot`, pour intégration dans `syntheses/`)

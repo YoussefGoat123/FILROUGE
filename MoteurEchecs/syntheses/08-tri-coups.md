@@ -32,6 +32,20 @@ flowchart LR
 
 Appliqué à la fois dans `meilleurCoup()` (racine) et `alphabeta()` (tous les nœuds internes) — pas seulement à la racine, pour que les coupures profitent à tout l'arbre, pas juste au premier niveau.
 
+## Flamegraphs réels — avant / après (captures d'écran)
+
+**Avant (Étape 6, référence — même profondeur 5, mêmes 41 554 positions) :**
+
+![Flamegraph avant tri des coups](../profiling/etape8-avant-flamegraph.png)
+
+**Après (Étape 8 — tri MVV-LVA appliqué, 25 319 positions) :**
+
+![Flamegraph après tri des coups](../profiling/etape8-flamegraph.png)
+
+Reconstruit via un worktree git isolé sur le commit de l'Étape 6 (`cb8650d`, code d'avant, jamais modifié) pour obtenir une comparaison visuelle directe sur le même outil. À l'œil, l'arbre "après" est visiblement plus resserré (moins de branches latérales `co..`) — cohérent avec les −39% de positions visitées. Versions interactives : `profiling/etape8-avant-flamegraph.html` et `profiling/etape8-flamegraph.html`.
+
+⚠️ **Ne pas comparer ces images à celle de l'Étape 7** : celle-ci est à profondeur 5 (comme toutes les mesures Hyperfine du projet), l'Étape 7 est à profondeur 6 (fenêtre plus longue, nécessaire pour un échantillonnage CPU stable) — les deux flamegraphs Étape 7/8 ne sont pas directement superposables, seule la paire avant/après de cette page (même profondeur, même outil) l'est. *Pourquoi : le nombre de positions explose avec la profondeur (×15-16 entre 5 et 6) — une image "plus grosse" à profondeur 6 ne refléterait qu'une profondeur différente, pas une régression.*
+
 ## Impact mesuré
 
 ```mermaid
