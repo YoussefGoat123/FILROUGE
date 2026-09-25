@@ -1,4 +1,4 @@
-# Schémas — État actuel du projet (Étapes 1 à 8)
+# Schémas — État actuel du projet (Étapes 1 à 9)
 
 Diagrammes Mermaid de l'architecture et du fonctionnement du moteur. Même conventions que HashBreaker (`../../shemas/schemas.md`).
 
@@ -154,10 +154,11 @@ graph LR
         T17["mat en 1 trouve meme a profondeur 1"]
         T18["positions evaluees croit avec la profondeur"]
     end
-    subgraph "MinimaxAlphaBetaTest - 5 tests"
+    subgraph "MinimaxAlphaBetaTest - 9 tests"
         T19["equivalence avec Minimax pur (2 tests)"]
         T20["mat en 1, coups legaux"]
         T21["visite strictement moins de positions"]
+        T21b["budget de temps : convergence, court, interruption, deadline (4 tests, Etape 9)"]
     end
     subgraph "PlateauBitsTest - 8 tests"
         T22["placement initial, coherence avec Plateau"]
@@ -168,7 +169,7 @@ graph LR
     end
 ```
 
-**Résultat actuel : 47/47 tests passent.**
+**Résultat actuel : 51/51 tests passent.**
 
 ---
 
@@ -378,9 +379,34 @@ flowchart LR
 
 ---
 
-## 14. Fonctionnement des méthodes principales (état actuel du code)
+## 14. Étape 9 : Recherche à budget de temps (Iterative Deepening) — macro-optimisation
 
-### 14.1 `MinimaxAlphaBeta.meilleurCoup()` — point d'entrée de la recherche
+`MinimaxAlphaBeta.meilleurCoupBudgetTemps()` : boucle sur des profondeurs croissantes jusqu'à épuisement d'un budget de temps, retourne le coup de la dernière profondeur **complètement terminée** (jamais un résultat partiel).
+
+```mermaid
+flowchart LR
+    P1["Profondeur 1"] --> P2["Profondeur 2..."]
+    P2 --> PN["Profondeur N\n(interrompue si budget epuise)"]
+    PN --> R["Retourne le coup de la\nDERNIERE profondeur COMPLETE"]
+
+    style R fill:#2e7d32,color:#fff
+```
+
+**Nature différente des leviers macro précédents** : Étapes 2 et 8 réduisaient le nombre de positions visitées. Celle-ci en **rajoute** (profondeurs 1 à N-1 refaites) — le gain n'est pas la vitesse, c'est une capacité nouvelle : répondre sous une vraie contrainte de temps.
+
+| Budget | Profondeur atteinte | Coup |
+|---|---|---|
+| 200 ms | 4 | `b1c3` |
+| 500-2000 ms | 5 *(profondeur 6 commencee mais jetee)* | `b2b3` |
+| 5000 ms | 6 | `b1c3` |
+
+**3 bugs corrigés avant que ce soit fiable** : deadline par défaut à 0 (interrompait tout appel direct à `meilleurCoup()`), deadline non réinitialisée après un budget (polluait l'appel suivant), et surtout — `Plateau` muté en place (Étape 4) risquant de rester corrompu si `annuler()` n'est pas protégé par `try/finally` lors d'une interruption en pleine récursion. Détails : [process/09-recherche-budget-temps.md](../process/09-recherche-budget-temps.md).
+
+---
+
+## 15. Fonctionnement des méthodes principales (état actuel du code)
+
+### 15.1 `MinimaxAlphaBeta.meilleurCoup()` — point d'entrée de la recherche
 
 ```mermaid
 flowchart TD
@@ -401,7 +427,7 @@ flowchart TD
 
 Pas de coupure à la racine (il faut comparer tous les coups candidats), mais `alpha`/`beta` se resserrent à chaque coup testé.
 
-### 14.2 `MinimaxAlphaBeta.alphabeta()` — le cœur récursif avec élagage
+### 15.2 `MinimaxAlphaBeta.alphabeta()` — le cœur récursif avec élagage
 
 ```mermaid
 flowchart TD
@@ -428,7 +454,7 @@ flowchart TD
 
 Même fonction pour BLANC (maximise) et NOIR (minimise) selon `plateau.trait()` — diagramme simplifié en un seul chemin, le code a deux branches symétriques (`Math.max`/`alpha` vs `Math.min`/`beta`).
 
-### 14.3 `GenerateurCoups.coupsLegaux()` — filtrage pseudo-légal → légal
+### 15.3 `GenerateurCoups.coupsLegaux()` — filtrage pseudo-légal → légal
 
 ```mermaid
 flowchart TD
@@ -446,7 +472,7 @@ flowchart TD
 
 Chaque coup pseudo-légal est essayé puis annulé sur la même instance de plateau (make/unmake) — plus aucune copie de grille ici depuis l'Étape 4.
 
-### 14.4 `GenerateurCoups.caseAttaquee()` — détection directe (réécrite à l'Étape 4)
+### 15.4 `GenerateurCoups.caseAttaquee()` — détection directe (réécrite à l'Étape 4)
 
 ```mermaid
 flowchart TD
@@ -468,7 +494,7 @@ flowchart TD
 
 Chaque test regarde directement les cases pertinentes (aucune liste de coups générée) — la correction qui a fait passer les allocations de 600 à 120 échantillons (Étape 4).
 
-### 14.5 `Plateau.jouer()` / `annuler()` — le mécanisme make/unmake
+### 15.5 `Plateau.jouer()` / `annuler()` — le mécanisme make/unmake
 
 ```mermaid
 sequenceDiagram
@@ -489,7 +515,7 @@ sequenceDiagram
 
 Une seule instance de `Plateau` traverse tout l'arbre de recherche — c'est le "buffer réutilisé" de l'Étape 4, l'équivalent échecs du `[8]byte` du cours.
 
-### 14.6 `GenerateurCoups.coupsPseudoLegaux()` — génération brute, par type de pièce
+### 15.6 `GenerateurCoups.coupsPseudoLegaux()` — génération brute, par type de pièce
 
 ```mermaid
 flowchart TD
@@ -514,7 +540,7 @@ flowchart TD
 
 Balaie les 64 cases une seule fois, délègue par type de pièce — pas encore optimisé (candidat naturel pour les bitboards, Étape 3, une fois intégrés).
 
-### 14.7 `GenerateurCoups.genererCoupsPion()` — le cas le plus riche en règles
+### 15.7 `GenerateurCoups.genererCoupsPion()` — le cas le plus riche en règles
 
 ```mermaid
 flowchart TD
@@ -533,7 +559,7 @@ flowchart TD
 
 Seule méthode qui gère la promotion (auto-Dame) et l'avance double conditionnelle — cohérent avec la simplification actée (pas de prise en passant).
 
-### 14.8 `GenerateurCoups.genererCoupsGlissants()` — fou/tour/dame (rayons)
+### 15.8 `GenerateurCoups.genererCoupsGlissants()` — fou/tour/dame (rayons)
 
 ```mermaid
 flowchart TD
@@ -554,7 +580,7 @@ flowchart TD
 
 Exactement le même schéma sert au cavalier/roi (`genererCoupsSauts`), mais sans la boucle "continue à glisser" — un seul pas par direction, pas de rayon.
 
-### 14.9 `Evaluateur.evaluer()` — score matériel
+### 15.9 `Evaluateur.evaluer()` — score matériel
 
 ```mermaid
 flowchart TD
@@ -575,7 +601,7 @@ Volontairement simple (V1) : aucune table de position, aucun bonus structurel �
 
 ---
 
-## 15. Où on en est
+## 16. Où on en est
 
 ```mermaid
 flowchart LR
@@ -589,7 +615,8 @@ flowchart LR
     SP --> PA["✅ Pre-allocation capacite\n(listes de Coup) : x1,11"]
     PA --> PR["✅ Profiling reel (Flamegraph)\ncaseAttaquee=59-72% CPU (3 runs),\nevaluation<4% (valide Etape 4)"]
     PR --> TC["✅ Tri des coups (MVV-LVA, macro)\npositions -39%, temps x1,25"]
-    TC --> F["⬜ Prochains leviers :\ntable de transposition,\nworkers, I/O & persistance"]
+    TC --> BT["✅ Budget de temps (macro, iterative deepening)\nprofondeur adaptative, jamais de resultat partiel"]
+    BT --> F["⬜ Prochains leviers :\ntable de transposition,\nworkers, I/O & persistance"]
 
     style A fill:#2e7d32,color:#fff
     style B fill:#2e7d32,color:#fff
@@ -602,5 +629,6 @@ flowchart LR
     style PA fill:#2e7d32,color:#fff
     style PR fill:#2e7d32,color:#fff
     style TC fill:#2e7d32,color:#fff
+    style BT fill:#2e7d32,color:#fff
     style F fill:#9e9e9e,color:#fff
 ```

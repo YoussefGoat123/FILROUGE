@@ -14,6 +14,7 @@ Même méthodologie que le TP fil rouge HashBreaker (`../../process/`) : un fich
 | 06 | [Pré-allocation de capacité (listes de Coup)](06-preallocation-listes-coup.md) | ✅ |
 | 07 | [Profiling réel & Hot Path (Axe 2)](07-profiling-reel-hotpath.md) | ✅ |
 | 08 | [Tri des coups (MVV-LVA, macro)](08-tri-coups-move-ordering.md) | ✅ |
+| 09 | [Recherche à budget de temps (iterative deepening)](09-recherche-budget-temps.md) | ✅ |
 
 ## Voir aussi
 

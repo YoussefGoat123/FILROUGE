@@ -73,4 +73,54 @@ class MinimaxAlphaBetaTest {
         assertTrue(positionsElague < positionsNaif,
                 "l'elagage doit visiter moins de positions (" + positionsElague + " vs " + positionsNaif + ")");
     }
+
+    // ---- Etape 9 : recherche a budget de temps (iterative deepening) ----
+
+    @Test
+    void budgetTemps_grandBudget_convergeVersLeMemeCoupQuUneProfondeurFixe() {
+        Plateau plateau = Plateau.positionDepart();
+
+        Coup coupProfondeurFixe = MinimaxAlphaBeta.meilleurCoup(plateau, 3);
+        Coup coupBudgetTemps = MinimaxAlphaBeta.meilleurCoupBudgetTemps(plateau, 5000);
+
+        assertEquals(coupProfondeurFixe, coupBudgetTemps,
+                "avec un grand budget, le coup doit converger vers celui d'une recherche directe a la meme profondeur");
+        assertTrue(MinimaxAlphaBeta.profondeurAtteinte() >= 3,
+                "un budget de 5s doit largement depasser la profondeur 3 sur la position de depart");
+    }
+
+    @Test
+    void budgetTemps_budgetTresCourt_renvoieQuandMemeUnCoupValide() {
+        Plateau plateau = Plateau.positionDepart();
+
+        Coup coup = MinimaxAlphaBeta.meilleurCoupBudgetTemps(plateau, 1);
+
+        assertNotNull(coup, "meme un budget tres court doit renvoyer un coup (au moins profondeur 1)");
+        List<Coup> coupsLegaux = GenerateurCoups.coupsLegaux(plateau);
+        assertTrue(coupsLegaux.contains(coup));
+        assertTrue(MinimaxAlphaBeta.profondeurAtteinte() >= 1);
+    }
+
+    @Test
+    void budgetTemps_interruption_neCorrompPasLePlateau() {
+        Plateau plateau = Plateau.positionDepart();
+        List<Coup> coupsAvant = GenerateurCoups.coupsLegaux(plateau);
+
+        MinimaxAlphaBeta.meilleurCoupBudgetTemps(plateau, 1); // budget volontairement tres court, force l'interruption
+
+        List<Coup> coupsApres = GenerateurCoups.coupsLegaux(plateau);
+        assertEquals(coupsAvant.size(), coupsApres.size(),
+                "le plateau doit etre revenu exactement a son etat initial apres une interruption, malgre les jouer()/annuler() en profondeur");
+        assertEquals(plateau.trait(), Plateau.positionDepart().trait());
+    }
+
+    @Test
+    void budgetTemps_appelDirectMeilleurCoupApres_neSubitPasDeDeadlinePerimee() {
+        Plateau plateau = Plateau.positionDepart();
+
+        MinimaxAlphaBeta.meilleurCoupBudgetTemps(plateau, 1); // pose puis doit nettoyer sa deadline
+        Coup coup = MinimaxAlphaBeta.meilleurCoup(plateau, 2); // appel direct, sans budget, juste apres
+
+        assertNotNull(coup, "un appel direct a meilleurCoup() apres un budget de temps ne doit pas heriter d'une deadline perimee");
+    }
 }

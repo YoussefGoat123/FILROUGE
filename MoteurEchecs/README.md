@@ -9,7 +9,7 @@ Moteur d'échecs Minimax/Alpha-Beta — sujet libre du projet noté du module *O
 ## Build & run
 
 ```
-mvn test                                                        # 47 tests
+mvn test                                                        # 51 tests
 mvn -q compile && java -cp target/classes com.moteurechecs.Main
 ```
 
@@ -37,7 +37,9 @@ src/main/java/com/moteurechecs/
 └── experimentation/
     ├── EtapeLocaliteMemoire.java      comparaison Plateau (objets) vs PlateauBits
     ├── DiagnosticAllocations.java     point d'entrée pour profiler MinimaxAlphaBeta sous JFR
-    └── DiagnosticStructLayout.java    inspection JOL du layout mémoire de Piece/Coup/InfoAnnulation
+    ├── DiagnosticStructLayout.java    inspection JOL du layout mémoire de Piece/Coup/InfoAnnulation
+    ├── DiagnosticProfilingReel.java   point d'entrée profondeur 6, pour flamegraph CPU (Étape 7)
+    └── DiagnosticBudgetTemps.java     mesure profondeur atteinte vs budget de temps (Étape 9)
 ```
 
 ## Simplifications actées (voir `choix-sujet.md`)
@@ -46,7 +48,7 @@ src/main/java/com/moteurechecs/
 - **Promotion automatique en Dame** (pas de choix de sous-promotion).
 - **Évaluation matérielle uniquement** — pas de tables de position, pas de bonus structurel.
 - **`PlateauBits` (bitboards) pas encore intégré** à la génération de coups/recherche — mesure d'accès pur uniquement pour l'instant.
-- **Pas encore de table de transposition** (cache LRU des positions déjà évaluées) — prévue à l'Étape 9.
+- **Pas encore de table de transposition** (cache LRU des positions déjà évaluées) — prévue à l'Étape 10.
 
 ## Progression mesurée (position de départ, Minimax + Alpha-Beta, profondeur 5)
 
@@ -57,6 +59,7 @@ src/main/java/com/moteurechecs/
 | + Zéro-allocation (Étape 4, micro) | 475,3 ms ± 37,8 ms | ×4,2 |
 | + Pré-allocation capacité (Étape 6, micro) | 426,3 ms ± 35,8 ms | **×4,7** |
 | + Tri des coups MVV-LVA (Étape 8, macro) | 709,8 ms ± 23,1 ms *(session de mesure différente, voir note)* | ×1,25 sur sa propre baseline ; **−39 % de positions évaluées** (41 554 → 25 319) |
+| + Budget de temps, iterative deepening (Étape 9, macro) | *variable selon budget (voir synthèse dédiée)* | N/A — pas un gain de vitesse, une capacité nouvelle (réponse garantie sous budget de temps, jamais de résultat partiel) |
 
 Étape 5 (struct padding, JOL) : vérifiée, aucun gain accessible manuellement en Java (voir synthèse dédiée).
 

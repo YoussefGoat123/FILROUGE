@@ -21,12 +21,39 @@ import java.util.List;
  * Mathematiquement equivalent a Minimax pur (memes scores, memes coups
  * choisis en cas d'egalite stricte -- le tri ne change que l'ORDRE
  * d'exploration, jamais le resultat) -- valide par tests.
+ *
+ * Etape 9 (MACRO, recherche a budget de temps) : meilleurCoupBudgetTemps()
+ * enchaine des recherches a profondeur croissante (iterative deepening)
+ * jusqu'a epuisement d'un budget de temps, et retourne le meilleur coup de
+ * la DERNIERE profondeur COMPLETEMENT terminee -- jamais un resultat
+ * partiel. Contrairement aux Etapes 2/8, ce levier n'evite pas de travail
+ * (il refait les profondeurs 1..N-1) : son gain est une CAPACITE nouvelle
+ * (repondre sous contrainte de temps reelle), pas une acceleration.
  */
 public class MinimaxAlphaBeta {
 
     private static final int SCORE_MAT = 1_000_000;
+    private static final int MASQUE_VERIF_TEMPS = 1023; // verifie l'horloge tous les 1024 noeuds, pas a chaque noeud
 
     private static long positionsEvaluees;
+    // Long.MAX_VALUE par defaut : un appel direct a meilleurCoup() (tests,
+    // diagnostics, Main.java) sans passer par meilleurCoupBudgetTemps() ne
+    // doit JAMAIS declencher d'interruption -- seul un vrai budget de temps
+    // pose une deadline reelle.
+    private static long deadlineNanos = Long.MAX_VALUE;
+    private static long positionsEvalueesTotal;
+    private static int profondeurAtteinte;
+
+    // exception de controle de flux : pas de message ni de stack trace (cout de
+    // construction quasi nul), instance unique reutilisee -- zero allocation
+    // par interruption, meme principe que le zero-allocation de l'Etape 4.
+    private static final class RechercheInterrompue extends RuntimeException {
+        RechercheInterrompue() {
+            super(null, null, false, false);
+        }
+    }
+
+    private static final RechercheInterrompue INTERRUPTION = new RechercheInterrompue();
 
     public static Coup meilleurCoup(Plateau plateau, int profondeur) {
         positionsEvaluees = 0;
@@ -45,8 +72,15 @@ public class MinimaxAlphaBeta {
 
         for (Coup coup : coups) {
             Plateau.InfoAnnulation info = plateau.jouer(coup);
-            int score = alphabeta(plateau, profondeur - 1, alpha, beta);
-            plateau.annuler(coup, info);
+            int score;
+            try {
+                score = alphabeta(plateau, profondeur - 1, alpha, beta);
+            } finally {
+                // toujours annuler, meme si alphabeta() est interrompue par
+                // RechercheInterrompue -- sinon le Plateau (mute en place)
+                // reste corrompu, a moitie joue
+                plateau.annuler(coup, info);
+            }
 
             boolean meilleur = (joueur == Couleur.BLANC) ? (score > meilleurScore) : (score < meilleurScore);
             if (meilleur) {
@@ -64,8 +98,47 @@ public class MinimaxAlphaBeta {
         return meilleurCoup;
     }
 
+    /**
+     * Etape 9 : iterative deepening avec budget de temps. Cherche profondeur
+     * 1, 2, 3... jusqu'a epuisement du budget ; retourne le coup de la
+     * derniere profondeur COMPLETEMENT terminee (une profondeur interrompue
+     * en cours de route est jetee, jamais retournee).
+     */
+    public static Coup meilleurCoupBudgetTemps(Plateau plateau, long budgetMillis) {
+        deadlineNanos = System.nanoTime() + budgetMillis * 1_000_000L;
+        positionsEvalueesTotal = 0;
+        profondeurAtteinte = 0;
+        Coup meilleurCoupTotal = null;
+
+        try {
+            int profondeur = 1;
+            while (System.nanoTime() < deadlineNanos) {
+                try {
+                    Coup candidat = meilleurCoup(plateau, profondeur);
+                    positionsEvalueesTotal += positionsEvaluees;
+                    meilleurCoupTotal = candidat;
+                    profondeurAtteinte = profondeur;
+                    profondeur++;
+                } catch (RechercheInterrompue interruption) {
+                    positionsEvalueesTotal += positionsEvaluees; // travail reel fait, meme si jete
+                    break;
+                }
+            }
+        } finally {
+            // remettre "pas de deadline" -- sinon un appel direct a meilleurCoup()
+            // juste apres (autre test, autre diagnostic) heriterait d'une
+            // deadline perimee et serait interrompu a tort
+            deadlineNanos = Long.MAX_VALUE;
+        }
+
+        return meilleurCoupTotal;
+    }
+
     static int alphabeta(Plateau plateau, int profondeur, int alpha, int beta) {
         positionsEvaluees++;
+        if ((positionsEvaluees & MASQUE_VERIF_TEMPS) == 0 && System.nanoTime() >= deadlineNanos) {
+            throw INTERRUPTION;
+        }
 
         List<Coup> coups = GenerateurCoups.coupsLegaux(plateau);
 
@@ -86,8 +159,12 @@ public class MinimaxAlphaBeta {
             int max = Integer.MIN_VALUE;
             for (Coup coup : coups) {
                 Plateau.InfoAnnulation info = plateau.jouer(coup);
-                int score = alphabeta(plateau, profondeur - 1, alpha, beta);
-                plateau.annuler(coup, info);
+                int score;
+                try {
+                    score = alphabeta(plateau, profondeur - 1, alpha, beta);
+                } finally {
+                    plateau.annuler(coup, info);
+                }
 
                 max = Math.max(max, score);
                 alpha = Math.max(alpha, max);
@@ -100,8 +177,12 @@ public class MinimaxAlphaBeta {
             int min = Integer.MAX_VALUE;
             for (Coup coup : coups) {
                 Plateau.InfoAnnulation info = plateau.jouer(coup);
-                int score = alphabeta(plateau, profondeur - 1, alpha, beta);
-                plateau.annuler(coup, info);
+                int score;
+                try {
+                    score = alphabeta(plateau, profondeur - 1, alpha, beta);
+                } finally {
+                    plateau.annuler(coup, info);
+                }
 
                 min = Math.min(min, score);
                 beta = Math.min(beta, min);
@@ -115,6 +196,14 @@ public class MinimaxAlphaBeta {
 
     public static long positionsEvaluees() {
         return positionsEvaluees;
+    }
+
+    public static long positionsEvalueesTotal() {
+        return positionsEvalueesTotal;
+    }
+
+    public static int profondeurAtteinte() {
+        return profondeurAtteinte;
     }
 
     /**

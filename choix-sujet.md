@@ -87,12 +87,13 @@ flowchart LR
     SP --> PA["✅ Étape 6\nPré-allocation capacité\n(listes de Coup) : x1,11\n(levier du cours rattrape apres-coup)"]
     PA --> D["✅ Étape 7\nProfiling réel (axe 2)\ncaseAttaquee = 59-72% CPU (3 runs),\nevaluation < 4% (valide Etape 4)"]
     D --> TC["✅ Étape 8\nTri des coups (MACRO, MVV-LVA)\npositions -39%, temps x1,2-1,25\n(cible directement le Hot Path Etape 7)"]
-    TC --> F["⬜ Étape 9\nTable de transposition\nLRU bornée (axe 3)"]
-    F --> G["⬜ Étape 10\nRecherche parallèle\nworker pool + atomique (axe 3)"]
-    G --> H["⬜ Étape 11\nI/O & Persistance\nSQL indexé + gRPC (axe 3)"]
-    H --> I["⬜ Étape 12\nÉchec constructif\nexpérience ratée, chiffrée\n(axe 4)"]
-    I --> J["⬜ Étape 13\nReproductibilité\nscript one-shot + tableau\nfinal (axe 5)"]
-    J --> K["⬜ Étape 14\nRapport d'audit final\nconsolidé (PDF/MD)"]
+    TC --> BT["✅ Étape 9\nRecherche a budget de temps\n(iterative deepening, MACRO)\ndepth adaptative, jamais de resultat partiel"]
+    BT --> F["⬜ Étape 10\nTable de transposition\nLRU bornée (axe 3)"]
+    F --> G["⬜ Étape 11\nRecherche parallèle\nworker pool + atomique (axe 3)"]
+    G --> H["⬜ Étape 12\nI/O & Persistance\nSQL indexé + gRPC (axe 3)"]
+    H --> I["⬜ Étape 13\nÉchec constructif\nexpérience ratée, chiffrée\n(axe 4)"]
+    I --> J["⬜ Étape 14\nReproductibilité\nscript one-shot + tableau\nfinal (axe 5)"]
+    J --> K["⬜ Étape 15\nRapport d'audit final\nconsolidé (PDF/MD)"]
 
     style A fill:#2e7d32,color:#fff
     style E fill:#2e7d32,color:#fff
@@ -102,6 +103,7 @@ flowchart LR
     style PA fill:#2e7d32,color:#fff
     style D fill:#2e7d32,color:#fff
     style TC fill:#2e7d32,color:#fff
+    style BT fill:#2e7d32,color:#fff
     style F fill:#9e9e9e,color:#fff
     style G fill:#9e9e9e,color:#fff
     style H fill:#9e9e9e,color:#fff
@@ -110,7 +112,7 @@ flowchart LR
     style K fill:#9e9e9e,color:#fff
 ```
 
-**Étapes 1 à 8 terminées** (2026-09-24) — voir [MoteurEchecs/process/](MoteurEchecs/process/README.md) et [MoteurEchecs/syntheses/](MoteurEchecs/syntheses/README.md) (suivi détaillé mis en place dès le démarrage, mêmes conventions que HashBreaker : chaque synthèse est autonome avec diagrammes + tableau comparatif contre l'étape directement comparable précédente). Les Étapes 5 et 6 (struct padding/JOL, pré-allocation de capacité) ont été insérées après coup — deux leviers du cours identifiés comme manqués en relisant la roadmap, plutôt que laissés de côté silencieusement. Depuis l'Étape 4, le code est modifié **en place** (pas de classes parallèles par étape) — la comparaison avant/après repose sur des mesures Hyperfine/JFR prises juste avant chaque modification, conservées dans `MoteurEchecs/profiling/`. L'Étape 7 (profiling CPU réel, Axe 2 du barème) a produit le premier flamegraph du projet et confirmé, sur 3 runs de vérification, que `caseAttaquee()` (ciblée dès l'Étape 4) reste le vrai goulot (59-72% du temps CPU selon le run), loin devant l'évaluation de position (toujours <4%). L'Étape 8 (tri des coups, MVV-LVA) a directement exploité ce constat — levier MACRO (comme l'alpha-beta de l'Étape 2) plutôt que micro, choisi à la place de la table de transposition initialement prévue à ce rang, parce qu'il cible sans détour le Hot Path mesuré à l'Étape 7 ; la table de transposition et les étapes suivantes ont été décalées d'un rang (désormais Étapes 9 à 14). Les étapes suivantes restent à réaliser. À garder à l'esprit : ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 14), puisque c'est ce document-là, et lui seul, qui sera noté.
+**Étapes 1 à 9 terminées** (2026-09-24) — voir [MoteurEchecs/process/](MoteurEchecs/process/README.md) et [MoteurEchecs/syntheses/](MoteurEchecs/syntheses/README.md) (suivi détaillé mis en place dès le démarrage, mêmes conventions que HashBreaker : chaque synthèse est autonome avec diagrammes + tableau comparatif contre l'étape directement comparable précédente). Les Étapes 5 et 6 (struct padding/JOL, pré-allocation de capacité) ont été insérées après coup — deux leviers du cours identifiés comme manqués en relisant la roadmap, plutôt que laissés de côté silencieusement. Depuis l'Étape 4, le code est modifié **en place** (pas de classes parallèles par étape) — la comparaison avant/après repose sur des mesures Hyperfine/JFR prises juste avant chaque modification, conservées dans `MoteurEchecs/profiling/`. L'Étape 7 (profiling CPU réel, Axe 2 du barème) a produit le premier flamegraph du projet et confirmé, sur 3 runs de vérification, que `caseAttaquee()` (ciblée dès l'Étape 4) reste le vrai goulot (59-72% du temps CPU selon le run), loin devant l'évaluation de position (toujours <4%). L'Étape 8 (tri des coups, MVV-LVA) a directement exploité ce constat — levier MACRO (comme l'alpha-beta de l'Étape 2) plutôt que micro, choisi à la place de la table de transposition initialement prévue à ce rang, parce qu'il cible sans détour le Hot Path mesuré à l'Étape 7. L'Étape 9 (recherche à budget de temps, iterative deepening) a suivi directement — un levier MACRO d'une nature différente des précédents (il ne réduit pas le travail, il ajoute une capacité : répondre sous contrainte de temps réelle plutôt qu'à une profondeur fixe arbitraire) ; la table de transposition et les étapes suivantes ont été décalées d'un rang supplémentaire (désormais Étapes 10 à 15). Les étapes suivantes restent à réaliser. À garder à l'esprit : ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 15), puisque c'est ce document-là, et lui seul, qui sera noté.
 
 > 📌 **Rappel explicite (2026-09-23)** : comme pour HashBreaker, il faudra produire des **synthèses de résultats** à chaque étape clé (pas seulement un rapport final écrit d'un coup à la fin) — un tableau chiffré avant/après par levier appliqué, mis à jour au fur et à mesure. C'est cette accumulation progressive de synthèses qui alimentera directement le tableau de synthèse comparatif final (Axe 5) et le rapport d'audit — pas une reconstruction a posteriori en fin de projet, qui serait bien moins fiable et plus difficile à sourcer.
 
