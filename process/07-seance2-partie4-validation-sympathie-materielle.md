@@ -30,6 +30,46 @@ Le titre officiel de cette partie ("Vérifier que la disposition... maximise le 
 
 Ce résultat n'invalide pas la théorie du cours (localité spatiale, lignes de cache) — il montre au contraire, de façon très concrète, **pourquoi le cours insiste sur le profiling avant optimisation** : on ne peut pas savoir a priori quel levier produira un gain mesurable sans avoir d'abord identifié le goulot dominant du système complet.
 
+## Calcul formel de la loi d'Amdahl (a posteriori, avec les données réelles)
+
+La loi d'Amdahl a été citée qualitativement en Partie 3 et 4, mais jamais appliquée avec la formule littérale et des chiffres réels. Fait ici pour combler ce trou, avec les mesures des parties précédentes :
+
+```
+Sglobal = 1 / ((1 - P) + (P / S))
+```
+
+**Données mesurées :**
+- Écart mémoire pur (Partie 2, tableau vs liste) : **8 à 10 ns/candidat**
+- Temps total par candidat avec hachage réel (Partie 3) : **~870-900 ns**
+- `S` (accélération mesurée sur la portion mémoire) = **×8 à ×10**
+
+**Calcul de `P`** (poids de la portion mémoire dans le temps total par candidat) :
+
+```
+P = 9 ns / 885 ns ≈ 0,0102   (≈ 1,0 %)
+```
+
+(bornes basse/haute : 8/878 ≈ 0,91 % — 10/880 ≈ 1,14 %)
+
+**Application de la formule** (valeurs médianes P=0,0102, S=9) :
+
+```
+Sglobal = 1 / ((1 - 0,0102) + 0,0102/9)
+        = 1 / (0,9898 + 0,00113)
+        = 1 / 0,99093
+        ≈ 1,0091
+```
+
+**→ Gain global théorique maximal ≈ ×1,009 (~0,9 %).**
+
+Même dans le cas le plus favorable possible (bornes hautes P=1,14 %, S=10), le plafond reste **~1,0 %**. Et même avec une accélération infinie sur la portion mémoire (`S → ∞`) :
+
+```
+Sglobal(S→∞) = 1 / (1 - P) = 1 / 0,9898 ≈ 1,0103   →   plafond absolu ~1,0 %
+```
+
+**Comparaison au résultat observé (Partie 4) :** l'écart mesuré était de **-2,50 %**, explicitement qualifié de bruit de mesure. Le plafond théorique Amdahl (~0,8 à 1,0 %) tombe **dans cette même marge de bruit** — la loi d'Amdahl ne se contente donc pas d'expliquer qualitativement pourquoi le gain est invisible, elle prédit quantitativement un gain maximal si faible (<1%) qu'il est structurellement indissociable du bruit statistique observé. Ce calcul valide numériquement, et non plus seulement narrativement, pourquoi la Séance 3 (suppression du hachage naïf, qui doit faire remonter `P`) était la bonne étape suivante.
+
 ## Conclusion de la Séance 2
 
 Les 4 parties sont terminées. Résumé de la chaîne de raisonnement complète :

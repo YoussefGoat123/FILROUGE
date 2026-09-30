@@ -39,11 +39,11 @@ Un moteur d'échecs capable de :
 | Axe du barème | Pts | Couverture par le moteur d'échecs | Statut |
 |---|---|---|---|
 | 1. Environnement & Métrologie | 3 | Banc d'essai matériel (CPU, cœurs, cache L1/L2/L3, RAM, OS, runtime) + protocole **Hyperfine** (warmup, itérations, moyenne/médiane/écart-type/variance) | ⬜ À faire — générique, indépendant du sujet |
-| 2. Diagnostic matériel & Profiling réel | 5 | Flamegraphs/pprof réels + identification formelle du Hot Path (génération de coups vs évaluation vs tri des coups) | ✅ Très bon fit — le moteur d'échecs a un Hot Path riche et non trivial à découvrir, contrairement à HashBreaker où tout est évidemment CPU-bound dès le départ |
+| 2. Diagnostic matériel & Profiling réel | 5 | Flamegraphs/pprof réels + identification formelle du Hot Path (génération de coups vs évaluation vs tri des coups) | ✅ **Fait (Étape 7)** — flamegraph JFR réel, reproductibilité vérifiée sur 3 runs : vérification de légalité 59-72%, génération de coups 20-29%, recherche 6-9%, évaluation seulement <4% |
 | 3. Journal d'optimisation (Mémoire, Concurrence, I/O) | 5 | Mémoire : bitboards + zéro-allocation (make/unmake). Concurrence : worker pool + **early cancellation = alpha-beta lui-même**. I/O/Persistance : ⚠️ voir ci-dessous | ⚠️ Le volet I/O/Persistance doit être ajouté explicitement au périmètre (voir plus bas) |
-| 4. Confrontation critique & "Échec constructif" | 3 | Documenter une tentative d'optimisation ratée, chiffrée (ex: parallélisation de la recherche qui régresse à cause du context-switching ou d'un verrou trop fin sur la table de transposition partagée) | ⬜ À planifier explicitement — ne pas laisser ça au hasard, sinon risque de ne rien avoir à documenter |
+| 4. Confrontation critique & "Échec constructif" | 3 | Documenter une tentative d'optimisation ratée, chiffrée | ✅ **Fait (Étape 10)** — cache naïf de `roiEnEchec()` (HashMap<String,Boolean>), rejeté : ×2,09 plus lent, +250% d'allocations, cause physique identifiée (String réintroduite sur le chemin chaud), code retiré |
 | 5. Reproductibilité & Synthèse comparative | 4 | Script one-shot (`Makefile` / `run_benchmarks.sh`) + tableau final Baseline vs Version finale (`benchstat`/`hyperfine`) | ⬜ À faire — générique, indépendant du sujet |
-| BONUS : `constitution.md` | +2 | Fichier de gouvernance IA à la racine, respectant les 4 directives (posture ingénieur système, garde-fous négatifs explicites, couple hypothèse/commande de profiling, formatage compact impératif) | ⬜ À faire une fois le langage choisi (les garde-fous doivent être adaptés à ses anti-patterns spécifiques) |
+| BONUS : `constitution.md` | +2 | Fichier de gouvernance IA à la racine, respectant les 4 directives | ✅ **Fait** — [MoteurEchecs/constitution.md](MoteurEchecs/constitution.md), garde-fous adaptés aux anti-patterns Java réels du projet (String sur le chemin chaud, cache sans hachage incrémental, ArrayList non pré-dimensionnée, mutation partagée sans Atomic) |
 
 ### Point d'attention : l'axe I/O & Persistance n'est pas optionnel
 
@@ -67,42 +67,52 @@ Les garde-fous d'exemple donnés pour le bonus `constitution.md` sont très spé
 | **Localité mémoire / cache** | Bitboards tiennent dans un seul registre 64-bit ; tables de position (piece-square tables) en tableaux contigus |
 | **Compromis espace-temps** | Table de transposition = mémoïsation (+ RAM, - CPU), exactement la catégorie vue en J1_AM |
 | **Profiling** | Identifier le vrai Hot Path : génération de coups vs évaluation vs tri des coups (l'ordre de tri des coups impacte fortement l'efficacité de l'élagage) |
-| **Workers bornés / parallélisme** | Recherche parallèle sur plusieurs branches de l'arbre (ex: split au niveau racine, ou Lazy SMP) |
+| **Workers bornés / parallélisme** | Recherche parallèle sur plusieurs branches de l'arbre (root splitting via `ExecutorService.invokeAll()`, borné à `Runtime.getRuntime().availableProcessors()`) — théorie posée dans [compréhension/comprendre-concurrence-threads-verrous.md](compréhension/comprendre-concurrence-threads-verrous.md) et [compréhension/comprendre-workerpools-pipelines-async.md](compréhension/comprendre-workerpools-pipelines-async.md) (J3_AM/J3_PM) |
 | **Loi d'Amdahl** | Vérifier quelle portion (génération, éval, ou recherche) domine réellement avant de paralléliser — même piège que celui découvert en Séance 2 de HashBreaker |
 | **Streaming binaire / SQL** (requis — axe 3 du barème, 5 pts) | Exposer le moteur en service (gRPC) et indexer une base de parties (Zobrist hashing) pour un livre d'ouvertures, avec preuve `EXPLAIN ANALYZE` |
 | **Mise en cache bornée (LRU)** (requis — axe 3 du barème) | Table de transposition avec politique de remplacement explicite, pas une hash map non bornée |
 
-## Roadmap prévisionnelle (plan — rien n'est encore implémenté)
+## Roadmap (mise à jour au fil de l'avancement réel)
 
-Calquée sur la progression suivie pour HashBreaker, à ajuster selon le calendrier réel des séances à venir.
+> 🔄 **Réordonnée le 2026-09-23** : la macro-optimisation (élagage alpha-beta) est passée avant les micro-optimisations mémoire, décision volontaire — voir justification ci-dessous.
+
+**Pourquoi la macro d'abord ?** Sur un moteur d'échecs, l'explosion combinatoire de l'arbre de recherche (O(b^d)) est le facteur dominant — bien plus déterminant que n'importe quel gain constant de micro-optimisation, même principe que la loi d'Amdahl vue en Séance 2 de HashBreaker. Ça ne bloque pas les micro-optimisations prévues ensuite : l'architecture les sépare déjà proprement (alpha-beta touche uniquement `recherche/`, bitboards et zéro-allocation toucheront `modele/`). Seule conséquence à documenter : la baseline de l'Étape 1 (Minimax naïf) n'est plus la référence directe pour les micro-optimisations à venir — l'alpha-beta devient la nouvelle référence, car il ne fait pas "le même travail plus vite" mais "moins de travail" (nombre de positions visitées différent, pas juste un temps d'exécution différent).
 
 ```mermaid
 flowchart LR
-    A["Étape 1\nMise en place\nPlateau + génération de coups\n+ Minimax naïf + baseline\n(Hyperfine, axe 1)"] --> B["Étape 2\nLocalité mémoire\nBitboards vs représentation objet"]
-    B --> C["Étape 3\nZéro-allocation\nmake/unmake move"]
-    C --> D["Étape 4\nProfiling réel\nFlamegraph/pprof, Hot Path\n(axe 2)"]
-    D --> E["Étape 5\nÉlagage Alpha-Beta\nmacro-optimisation +\nearly cancellation"]
-    E --> F["Étape 6\nTable de transposition\nLRU bornée (axe 3)"]
-    F --> G["Étape 7\nRecherche parallèle\nworker pool + atomique (axe 3)"]
-    G --> H["Étape 8\nI/O & Persistance\nSQL indexé + gRPC (axe 3)"]
-    H --> I["Étape 9\nÉchec constructif\nexpérience ratée, chiffrée\n(axe 4)"]
-    I --> J["Étape 10\nReproductibilité\nscript one-shot + tableau\nfinal (axe 5)"]
-    J --> K["Étape 11\nRapport d'audit final\nconsolidé (PDF/MD)"]
+    A["✅ Étape 1\nMise en place\nPlateau + génération de coups\n+ Minimax naïf + baseline\n(~22-24K positions/s)"] --> E["✅ Étape 2\nÉlagage Alpha-Beta (MACRO)\n÷145,9 positions a profondeur 4\n(nouvelle reference pour la suite)"]
+    E --> B["✅ Étape 3\nLocalité mémoire\nBitboards vs objets : x1,3\n(mesure pure, pas integre)"]
+    B --> C["✅ Étape 4\nZéro-allocation\ncaseAttaquee directe + make/unmake\nx4,2, allocations ÷5"]
+    C --> SP["✅ Étape 5\nStruct Padding (JOL)\nverifie : rien a corriger\n(levier du cours rattrape apres-coup)"]
+    SP --> PA["✅ Étape 6\nPré-allocation capacité\n(listes de Coup) : x1,11\n(levier du cours rattrape apres-coup)"]
+    PA --> D["✅ Étape 7\nProfiling réel (axe 2)\ncaseAttaquee = 59-72% CPU (3 runs),\nevaluation < 4% (valide Etape 4)"]
+    D --> TC["✅ Étape 8\nTri des coups (MACRO, MVV-LVA)\npositions -39%, temps x1,2-1,25\n(cible directement le Hot Path Etape 7)"]
+    TC --> BT["✅ Étape 9\nRecherche a budget de temps\n(iterative deepening, MACRO)\ndepth adaptative, jamais de resultat partiel"]
+    BT --> EC["✅ Étape 10\nÉchec Constructif (axe 4)\ncache naif roiEnEchec rejete\nx2,09 plus lent, +250% allocs"]
+    EC --> F["⬜ Étape 11\nTable de transposition\nLRU bornée (axe 3)"]
+    F --> G["⬜ Étape 12\nRecherche parallèle\nworker pool + atomique (axe 3)"]
+    G --> H["⬜ Étape 13\nI/O & Persistance\nSQL indexé + gRPC (axe 3)"]
+    H --> J["⬜ Étape 14\nReproductibilité\nscript one-shot + tableau\nfinal (axe 5)"]
+    J --> K["⬜ Étape 15\nRapport d'audit final\nconsolidé (PDF/MD)"]
 
-    style A fill:#9e9e9e,color:#fff
-    style B fill:#9e9e9e,color:#fff
-    style C fill:#9e9e9e,color:#fff
-    style D fill:#9e9e9e,color:#fff
-    style E fill:#9e9e9e,color:#fff
+    style A fill:#2e7d32,color:#fff
+    style E fill:#2e7d32,color:#fff
+    style B fill:#2e7d32,color:#fff
+    style C fill:#2e7d32,color:#fff
+    style SP fill:#2e7d32,color:#fff
+    style PA fill:#2e7d32,color:#fff
+    style D fill:#2e7d32,color:#fff
+    style TC fill:#2e7d32,color:#fff
+    style BT fill:#2e7d32,color:#fff
+    style EC fill:#2e7d32,color:#fff
     style F fill:#9e9e9e,color:#fff
     style G fill:#9e9e9e,color:#fff
     style H fill:#9e9e9e,color:#fff
-    style I fill:#9e9e9e,color:#fff
     style J fill:#9e9e9e,color:#fff
     style K fill:#9e9e9e,color:#fff
 ```
 
-Toutes les étapes sont **à réaliser** (grisées intentionnellement) — ce document sert de plan de route, pas de journal d'avancement. Un suivi détaillé (type `process/` et `syntheses/` de HashBreaker) sera mis en place dès le démarrage effectif du projet, en gardant à l'esprit que ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 11), puisque c'est ce document-là, et lui seul, qui sera noté.
+**Étapes 1 à 10 terminées** (2026-09-30) — voir [MoteurEchecs/process/](MoteurEchecs/process/README.md) et [MoteurEchecs/syntheses/](MoteurEchecs/syntheses/README.md) (suivi détaillé mis en place dès le démarrage, mêmes conventions que HashBreaker : chaque synthèse est autonome avec diagrammes + tableau comparatif contre l'étape directement comparable précédente). Les Étapes 5 et 6 (struct padding/JOL, pré-allocation de capacité) ont été insérées après coup — deux leviers du cours identifiés comme manqués en relisant la roadmap, plutôt que laissés de côté silencieusement. Depuis l'Étape 4, le code est modifié **en place** (pas de classes parallèles par étape) — la comparaison avant/après repose sur des mesures Hyperfine/JFR prises juste avant chaque modification, conservées dans `MoteurEchecs/profiling/`. L'Étape 7 (profiling CPU réel, Axe 2 du barème) a produit le premier flamegraph du projet et confirmé, sur 3 runs de vérification, que `caseAttaquee()` (ciblée dès l'Étape 4) reste le vrai goulot (59-72% du temps CPU selon le run), loin devant l'évaluation de position (toujours <4%). L'Étape 8 (tri des coups, MVV-LVA) a directement exploité ce constat. L'Étape 9 (recherche à budget de temps, iterative deepening) a suivi. L'Étape 10 (Échec Constructif, Axe 4) a été avancée avant la table de transposition pour combler ce trou du barème dès que possible : une tentative de cache naïf de `roiEnEchec()` a été implémentée, mesurée (×2,09 plus lent, +250% d'allocations), puis retirée — même discipline de mesure que les succès. Le fichier `constitution.md` (bonus +2 pts) a également été rédigé. La table de transposition et les étapes suivantes ont été décalées d'un rang (désormais Étapes 11 à 15). Les étapes suivantes restent à réaliser. À garder à l'esprit : ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 15), puisque c'est ce document-là, et lui seul, qui sera noté.
 
 > 📌 **Rappel explicite (2026-09-23)** : comme pour HashBreaker, il faudra produire des **synthèses de résultats** à chaque étape clé (pas seulement un rapport final écrit d'un coup à la fin) — un tableau chiffré avant/après par levier appliqué, mis à jour au fur et à mesure. C'est cette accumulation progressive de synthèses qui alimentera directement le tableau de synthèse comparatif final (Axe 5) et le rapport d'audit — pas une reconstruction a posteriori en fin de projet, qui serait bien moins fiable et plus difficile à sourcer.
 
@@ -121,10 +131,10 @@ Toutes les étapes sont **à réaliser** (grisées intentionnellement) — ce do
 | **Code source complet** (dépôt Git ou archive) — non noté directement, mais rendu obligatoire (confirmé par le formateur en live) comme preuve de reproductibilité | Pièce à conviction |
 | *(Bonus)* `constitution.md` à la racine, respectant les 4 directives | Bonus +2 |
 
-## Décisions encore ouvertes
+## Décisions
 
-> ⏸️ **Reportées volontairement à plus tard** (2026-09-22) — ne pas trancher tant que HashBreaker n'est pas assez avancé pour en tirer les enseignements. Revenir sur cette section avant de démarrer le code du moteur d'échecs.
+- ✅ **Langage : Java** (tranché le 2026-09-23) — cohérent avec HashBreaker, toolchain déjà opérationnelle (Maven, JUnit, JFR, JOL, Hyperfine).
+- ✅ **Portée des règles (V1) : simplifiée** (tranché le 2026-09-23) — pas de roque ni de prise en passant au départ, promotion automatique en Dame. Ajoutables plus tard si besoin.
+- ⏸️ **Interface** : encore ouvert — moteur en ligne de commande (échange de positions FEN) vs interface graphique minimale. Pas bloquant pour l'instant (le moteur s'utilise directement via `Main.java`).
 
-- **Langage** : à confirmer (Java, pour rester cohérent avec HashBreaker, ou un autre langage si l'exercice de comparaison inter-langage a un intérêt pédagogique).
-- **Portée des règles d'échecs** : version complète (roque, prise en passant, promotion) ou sous-ensemble simplifié pour se concentrer sur la performance plutôt que l'exhaustivité des règles.
-- **Interface** : moteur en ligne de commande (échange de positions FEN) vs interface graphique minimale.
+Le code a démarré dans [MoteurEchecs/](MoteurEchecs/) — voir [MoteurEchecs/README.md](MoteurEchecs/README.md) pour le détail de l'architecture, et [MoteurEchecs/process/](MoteurEchecs/process/README.md) / [MoteurEchecs/syntheses/](MoteurEchecs/syntheses/README.md) pour le suivi étape par étape (mêmes conventions que HashBreaker).
