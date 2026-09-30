@@ -65,6 +65,7 @@
   <p class="subtitle">MoteurEchecs — Moteur d'échecs Minimax / Alpha-Beta</p>
   <p class="meta">
     <strong>Elbaz Youssef</strong><br>
+    Dépôt Git : <a href="https://github.com/YoussefGoat123/FILROUGE">github.com/YoussefGoat123/FILROUGE</a><br>
     Module <em>Optimisations &amp; Performances Backend</em> — Sup de Vinci, RNCP Bloc 4, Activité 13 &nbsp;|&nbsp; Formateur : Christophe Lecroq<br>
     Version 1.0 &nbsp;|&nbsp; 30 septembre 2026<br>
     Langage : Java 21 &nbsp;|&nbsp; Outils : Maven, JUnit 5, JFR, Hyperfine, JOL, async-profiler
@@ -102,21 +103,22 @@
 
 <table>
 <tr><th>Version</th><th>Stratégie</th><th>Type</th><th>Prof.</th><th>Temps</th><th>Positions</th><th>Allocations</th><th>Pic mémoire</th><th>Gain cumulé</th></tr>
-<tr><td>V0</td><td>Minimax naïf (baseline)</td><td>—</td><td class="num">4</td><td class="num">8 465 ms</td><td class="num">206 603</td><td>—</td><td class="num">~58-71 MB</td><td>—</td></tr>
+<tr><td>V0</td><td>Minimax naïf (baseline)</td><td>—</td><td class="num">4</td><td class="num">8 465 ms</td><td class="num">206 603</td><td>—</td><td class="num">~58-71 MB</td><td>non comparable*</td></tr>
 <tr><td>V1</td><td>Élagage Alpha-Beta</td><td>Macro</td><td class="num">5</td><td class="num">1 999 ms ±58</td><td class="num">41 554</td><td class="num">600 éch.</td><td class="num">~69 MB</td><td><strong>référence</strong></td></tr>
 <tr style="opacity:0.7"><td>V2 <span class="badge" style="background:#e0e0e0;color:#555">hors chaîne</span></td><td>Bitboards — mesure isolée, non intégrée au moteur</td><td>Micro</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>×1,3 sur l'opération isolée uniquement</td></tr>
 <tr><td>V3</td><td>Zéro-allocation (détection d'échec + make/unmake)</td><td>Micro</td><td class="num">5</td><td class="num">475,3 ms ±37,8</td><td class="num">41 554</td><td class="num">120 éch.</td><td class="num">~52-55 MB</td><td><strong>×4,2</strong></td></tr>
 <tr><td>V4</td><td>Alignement mémoire (vérifié, rien à corriger)</td><td>Micro</td><td class="num">5</td><td>inchangé</td><td class="num">41 554</td><td class="num">120 éch.</td><td>inchangé</td><td>×4,2</td></tr>
 <tr><td>V5</td><td>Pré-allocation de capacité</td><td>Micro</td><td class="num">5</td><td class="num">426,3 ms ±35,8</td><td class="num">41 554</td><td class="num">120 éch.</td><td class="num">~46-47 MB</td><td><strong>×4,7</strong></td></tr>
-<tr><td>V6</td><td>Profiling réel &amp; identification du Hot Path</td><td>Diagnostic</td><td class="num">6</td><td class="num">~2,06 s</td><td class="num">645 199</td><td>dominé `Coup`</td><td>—</td><td>—</td></tr>
+<tr><td>V6</td><td>Profiling réel &amp; identification du Hot Path</td><td>Diagnostic</td><td class="num">6</td><td class="num">~2,06 s</td><td class="num">645 199</td><td>dominé par l'allocation de <span class="mono">Coup</span></td><td>—</td><td>—</td></tr>
 <tr><td>V7</td><td>Tri des coups (MVV-LVA)</td><td>Macro</td><td class="num">5</td><td class="num">voir note**</td><td class="num"><strong>25 319</strong> (−39% vs V5)</td><td class="num">132 éch.</td><td>—</td><td><strong>×1,22 ±0,14</strong> vs V5</td></tr>
 <tr><td>V8</td><td>Recherche à budget de temps</td><td>Macro (capacité)</td><td>1-6 variable</td><td>voir §3.2</td><td class="num">7 224-569 956</td><td>—</td><td>—</td><td>N/A</td></tr>
-<tr><td>V9 <span class="badge fail">Échec</span></td><td>Cache naïf de détection d'échec</td><td>Diagnostic critique</td><td class="num">5</td><td class="num">709,0→1 481 ms</td><td class="num">25 319 (inchangé)</td><td class="num">132→462 éch.</td><td>—</td><td><span class="badge fail">×2,09 plus lent — rejeté</span></td></tr>
+<tr><td>V9 <span class="badge fail">Échec</span></td><td>Cache naïf de détection d'échec</td><td>Diagnostic critique</td><td class="num">5</td><td class="num">709,0→1 481 ms</td><td class="num">25 319 (inchangé vs V7)</td><td class="num">132→462 éch.</td><td>—</td><td><span class="badge fail">×2,09 plus lent — rejeté</span></td></tr>
 </table>
-<p style="font-size:8pt;color:#666">** V0 à V6 partagent une session de mesure continue. V7 a fait l'objet d'une <strong>vérification dédiée en comparaison directe</strong>, dans une session unique et contrôlée : V5 remesurée à 873,6 ms ±22,5 comme référence immédiate, V7 à 714,9 ms ±78,0, soit <strong>×1,22 ±0,14 plus rapide que V5</strong> (test statistique A/B, 5 essais chacune). C'est ce facteur relatif — pas une valeur absolue isolée — qui doit être retenu pour situer V7. Positions évaluées : métrique déterministe, insensible aux conditions machine, valable en toutes circonstances.</p>
+<p style="font-size:8pt;color:#666">* V0 (Minimax naïf) et V1 (Alpha-Beta) exécutent deux algorithmes de complexité différente — l'écart de temps entre eux reflète un nombre de positions radicalement différent (206 603 vs 41 554), pas la même charge de travail accélérée. Aucun facteur de gain n'est donc calculé entre V0 et V1 ; V1 sert de référence pour tous les gains cumulés suivants.</p>
+<p style="font-size:8pt;color:#666">** V0 à V6 partagent une session de mesure continue. V7 a fait l'objet d'une <strong>vérification dédiée en comparaison directe</strong>, dans une session unique et contrôlée : V5 remesurée à 873,6 ms ±22,5 comme référence immédiate, V7 à 714,9 ms ±78,0, soit <strong>×1,22 ±0,14 plus rapide que V5</strong> (test statistique A/B, 5 essais chacune). C'est ce facteur relatif — pas une valeur absolue isolée — qui doit être retenu pour situer V7 ; la valeur de 709,0 ms utilisée plus bas comme référence de l'échec constructif (V9) provient d'une session de mesure distincte, à moins de 1% de cette vérification. Positions évaluées : métrique déterministe, insensible aux conditions machine, valable en toutes circonstances.</p>
 
 <div class="callout good">
-<strong>Invariant :</strong> les positions évaluées restent identiques (41 554) de V1 à V5 — les optimisations micro accélèrent sans changer la décision (garantie validée par des tests d'équivalence mathématique stricte entre Minimax pur et Alpha-Beta). Seules V7 (tri, −39%) et V9 (cache raté, code retiré, positions inchangées car décisions restées correctes) font bouger ce nombre.
+<strong>Invariant :</strong> les positions évaluées restent identiques (41 554) de V1 à V5 — les optimisations micro accélèrent sans changer la décision (garantie validée par des tests d'équivalence mathématique stricte entre Minimax pur et Alpha-Beta). V7 fait passer ce nombre à 25 319 (−39%, effet du tri des coups) ; V9 n'y touche pas davantage — le cache raté change la vitesse d'exécution, jamais les décisions prises, le nombre reste donc à 25 319 avant comme après cette tentative.
 </div>
 
 <h3>3.1 — Hot Path mesuré (3 runs)</h3>
@@ -137,8 +139,8 @@
   <text x="127" y="75" font-size="8">6-9%</text>
   <text x="0" y="95" font-size="8">Évaluation</text>
   <rect x="70" y="86" width="586" height="10" fill="#eee"/>
-  <rect x="70" y="86" width="26" height="10" fill="#2e7d32"/>
-  <text x="102" y="95" font-size="8">&lt;4%</text>
+  <rect x="70" y="86" width="21" height="10" fill="#2e7d32"/>
+  <text x="97" y="95" font-size="8">&lt;4%</text>
 </svg>
 </div>
 <p>Résultat contre-intuitif, stable sur 3 runs : l'évaluation de position ne pèse jamais plus de 4% du temps CPU — le vrai goulot est la vérification de légalité (59-72%). Cette mesure, fondée sur le temps CPU, et le diagnostic d'allocations ayant motivé V3 (fondé sur le volume mémoire) convergent indépendamment sur la même fonction : elles confirment ensemble que la vérification de légalité était la bonne cible à optimiser, chacune sur son propre axe de mesure. Ce même constat justifie directement le tri des coups (V7), qui réduit le nombre d'appels à cette fonction plutôt que son coût unitaire.</p>
@@ -254,7 +256,7 @@
 
 <h2>11. Conclusion</h2>
 <p>Le travail réalisé établit deux résultats de nature distincte, à ne pas additionner l'un à l'autre : un gain de <strong>×4,7</strong> sur le temps de recherche entre la baseline Alpha-Beta et la version pré-allocation (V1→V5), et une réduction indépendante de <strong>39%</strong> du nombre de positions visitées apportée par le tri des coups (V7 vs V5), elle-même mesurée avec un gain en temps propre de ×1,22 — inférieur au gain en positions du fait du coût du tri lui-même. Ces deux résultats caractérisent des leviers différents, à des stades différents du moteur, et sont rapportés séparément par souci d'exactitude. Ce qui reste constant sur l'ensemble du parcours, c'est la correction du moteur : la suite de 51 tests reste intégralement verte à chaque étape, y compris des tests d'équivalence mathématique stricte entre l'algorithme naïf et sa version optimisée. La discipline "réduire la complexité avant d'accélérer, mesurer avant d'affirmer" a été appliquée dans l'ordre réel des décisions prises, pas seulement énoncée a posteriori. Les résultats modestes, les écarts entre métriques, et la tentative volontairement ratée sont documentés avec la même rigueur que les succès.</p>
-<p>La priorité donnée aux leviers directement mesurables et vérifiables — plutôt qu'une accumulation de leviers ambitieux non prouvés — a produit une base de code entièrement testée et benchmarkée, couvrant l'ensemble des axes techniques attendus : banc d'essai matériel, profiling réel, optimisation mémoire, confrontation critique chiffrée, et gouvernance d'ingénierie formalisée. C'est ce compromis — rigueur vérifiée plutôt qu'ambition non prouvée — qui constitue la meilleure solution atteignable dans ce cadre.</p>
+<p>La priorité donnée aux leviers directement mesurables et vérifiables — plutôt qu'une accumulation de leviers ambitieux non prouvés — a produit une base de code entièrement testée et benchmarkée, avec un périmètre couvert précisément délimité : banc d'essai matériel, profiling réel, optimisation mémoire, confrontation critique chiffrée, et gouvernance d'ingénierie formalisée. La concurrence multi-cœurs et la persistance/exposition en service restent hors périmètre de cette version — le mécanisme d'annulation précoce de V8 constitue une base directement réutilisable pour la première, non encore mise en œuvre. C'est ce compromis — rigueur vérifiée sur un périmètre assumé plutôt qu'ambition non prouvée sur un périmètre plus large — qui constitue la meilleure solution atteignable dans ce cadre.</p>
 
 <h2>12. Annexes</h2>
 <h3>12.1 — Gouvernance technique IA (constitution.md)</h3>
