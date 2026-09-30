@@ -41,9 +41,9 @@ Un moteur d'échecs capable de :
 | 1. Environnement & Métrologie | 3 | Banc d'essai matériel (CPU, cœurs, cache L1/L2/L3, RAM, OS, runtime) + protocole **Hyperfine** (warmup, itérations, moyenne/médiane/écart-type/variance) | ⬜ À faire — générique, indépendant du sujet |
 | 2. Diagnostic matériel & Profiling réel | 5 | Flamegraphs/pprof réels + identification formelle du Hot Path (génération de coups vs évaluation vs tri des coups) | ✅ **Fait (Étape 7)** — flamegraph JFR réel, reproductibilité vérifiée sur 3 runs : vérification de légalité 59-72%, génération de coups 20-29%, recherche 6-9%, évaluation seulement <4% |
 | 3. Journal d'optimisation (Mémoire, Concurrence, I/O) | 5 | Mémoire : bitboards + zéro-allocation (make/unmake). Concurrence : worker pool + **early cancellation = alpha-beta lui-même**. I/O/Persistance : ⚠️ voir ci-dessous | ⚠️ Le volet I/O/Persistance doit être ajouté explicitement au périmètre (voir plus bas) |
-| 4. Confrontation critique & "Échec constructif" | 3 | Documenter une tentative d'optimisation ratée, chiffrée (ex: parallélisation de la recherche qui régresse à cause du context-switching ou d'un verrou trop fin sur la table de transposition partagée) | ⬜ À planifier explicitement — ne pas laisser ça au hasard, sinon risque de ne rien avoir à documenter |
+| 4. Confrontation critique & "Échec constructif" | 3 | Documenter une tentative d'optimisation ratée, chiffrée | ✅ **Fait (Étape 10)** — cache naïf de `roiEnEchec()` (HashMap<String,Boolean>), rejeté : ×2,09 plus lent, +250% d'allocations, cause physique identifiée (String réintroduite sur le chemin chaud), code retiré |
 | 5. Reproductibilité & Synthèse comparative | 4 | Script one-shot (`Makefile` / `run_benchmarks.sh`) + tableau final Baseline vs Version finale (`benchstat`/`hyperfine`) | ⬜ À faire — générique, indépendant du sujet |
-| BONUS : `constitution.md` | +2 | Fichier de gouvernance IA à la racine, respectant les 4 directives (posture ingénieur système, garde-fous négatifs explicites, couple hypothèse/commande de profiling, formatage compact impératif) | ⬜ À faire une fois le langage choisi (les garde-fous doivent être adaptés à ses anti-patterns spécifiques) |
+| BONUS : `constitution.md` | +2 | Fichier de gouvernance IA à la racine, respectant les 4 directives | ✅ **Fait** — [MoteurEchecs/constitution.md](MoteurEchecs/constitution.md), garde-fous adaptés aux anti-patterns Java réels du projet (String sur le chemin chaud, cache sans hachage incrémental, ArrayList non pré-dimensionnée, mutation partagée sans Atomic) |
 
 ### Point d'attention : l'axe I/O & Persistance n'est pas optionnel
 
@@ -88,11 +88,11 @@ flowchart LR
     PA --> D["✅ Étape 7\nProfiling réel (axe 2)\ncaseAttaquee = 59-72% CPU (3 runs),\nevaluation < 4% (valide Etape 4)"]
     D --> TC["✅ Étape 8\nTri des coups (MACRO, MVV-LVA)\npositions -39%, temps x1,2-1,25\n(cible directement le Hot Path Etape 7)"]
     TC --> BT["✅ Étape 9\nRecherche a budget de temps\n(iterative deepening, MACRO)\ndepth adaptative, jamais de resultat partiel"]
-    BT --> F["⬜ Étape 10\nTable de transposition\nLRU bornée (axe 3)"]
-    F --> G["⬜ Étape 11\nRecherche parallèle\nworker pool + atomique (axe 3)"]
-    G --> H["⬜ Étape 12\nI/O & Persistance\nSQL indexé + gRPC (axe 3)"]
-    H --> I["⬜ Étape 13\nÉchec constructif\nexpérience ratée, chiffrée\n(axe 4)"]
-    I --> J["⬜ Étape 14\nReproductibilité\nscript one-shot + tableau\nfinal (axe 5)"]
+    BT --> EC["✅ Étape 10\nÉchec Constructif (axe 4)\ncache naif roiEnEchec rejete\nx2,09 plus lent, +250% allocs"]
+    EC --> F["⬜ Étape 11\nTable de transposition\nLRU bornée (axe 3)"]
+    F --> G["⬜ Étape 12\nRecherche parallèle\nworker pool + atomique (axe 3)"]
+    G --> H["⬜ Étape 13\nI/O & Persistance\nSQL indexé + gRPC (axe 3)"]
+    H --> J["⬜ Étape 14\nReproductibilité\nscript one-shot + tableau\nfinal (axe 5)"]
     J --> K["⬜ Étape 15\nRapport d'audit final\nconsolidé (PDF/MD)"]
 
     style A fill:#2e7d32,color:#fff
@@ -104,15 +104,15 @@ flowchart LR
     style D fill:#2e7d32,color:#fff
     style TC fill:#2e7d32,color:#fff
     style BT fill:#2e7d32,color:#fff
+    style EC fill:#2e7d32,color:#fff
     style F fill:#9e9e9e,color:#fff
     style G fill:#9e9e9e,color:#fff
     style H fill:#9e9e9e,color:#fff
-    style I fill:#9e9e9e,color:#fff
     style J fill:#9e9e9e,color:#fff
     style K fill:#9e9e9e,color:#fff
 ```
 
-**Étapes 1 à 9 terminées** (2026-09-24) — voir [MoteurEchecs/process/](MoteurEchecs/process/README.md) et [MoteurEchecs/syntheses/](MoteurEchecs/syntheses/README.md) (suivi détaillé mis en place dès le démarrage, mêmes conventions que HashBreaker : chaque synthèse est autonome avec diagrammes + tableau comparatif contre l'étape directement comparable précédente). Les Étapes 5 et 6 (struct padding/JOL, pré-allocation de capacité) ont été insérées après coup — deux leviers du cours identifiés comme manqués en relisant la roadmap, plutôt que laissés de côté silencieusement. Depuis l'Étape 4, le code est modifié **en place** (pas de classes parallèles par étape) — la comparaison avant/après repose sur des mesures Hyperfine/JFR prises juste avant chaque modification, conservées dans `MoteurEchecs/profiling/`. L'Étape 7 (profiling CPU réel, Axe 2 du barème) a produit le premier flamegraph du projet et confirmé, sur 3 runs de vérification, que `caseAttaquee()` (ciblée dès l'Étape 4) reste le vrai goulot (59-72% du temps CPU selon le run), loin devant l'évaluation de position (toujours <4%). L'Étape 8 (tri des coups, MVV-LVA) a directement exploité ce constat — levier MACRO (comme l'alpha-beta de l'Étape 2) plutôt que micro, choisi à la place de la table de transposition initialement prévue à ce rang, parce qu'il cible sans détour le Hot Path mesuré à l'Étape 7. L'Étape 9 (recherche à budget de temps, iterative deepening) a suivi directement — un levier MACRO d'une nature différente des précédents (il ne réduit pas le travail, il ajoute une capacité : répondre sous contrainte de temps réelle plutôt qu'à une profondeur fixe arbitraire) ; la table de transposition et les étapes suivantes ont été décalées d'un rang supplémentaire (désormais Étapes 10 à 15). Les étapes suivantes restent à réaliser. À garder à l'esprit : ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 15), puisque c'est ce document-là, et lui seul, qui sera noté.
+**Étapes 1 à 10 terminées** (2026-09-30) — voir [MoteurEchecs/process/](MoteurEchecs/process/README.md) et [MoteurEchecs/syntheses/](MoteurEchecs/syntheses/README.md) (suivi détaillé mis en place dès le démarrage, mêmes conventions que HashBreaker : chaque synthèse est autonome avec diagrammes + tableau comparatif contre l'étape directement comparable précédente). Les Étapes 5 et 6 (struct padding/JOL, pré-allocation de capacité) ont été insérées après coup — deux leviers du cours identifiés comme manqués en relisant la roadmap, plutôt que laissés de côté silencieusement. Depuis l'Étape 4, le code est modifié **en place** (pas de classes parallèles par étape) — la comparaison avant/après repose sur des mesures Hyperfine/JFR prises juste avant chaque modification, conservées dans `MoteurEchecs/profiling/`. L'Étape 7 (profiling CPU réel, Axe 2 du barème) a produit le premier flamegraph du projet et confirmé, sur 3 runs de vérification, que `caseAttaquee()` (ciblée dès l'Étape 4) reste le vrai goulot (59-72% du temps CPU selon le run), loin devant l'évaluation de position (toujours <4%). L'Étape 8 (tri des coups, MVV-LVA) a directement exploité ce constat. L'Étape 9 (recherche à budget de temps, iterative deepening) a suivi. L'Étape 10 (Échec Constructif, Axe 4) a été avancée avant la table de transposition pour combler ce trou du barème dès que possible : une tentative de cache naïf de `roiEnEchec()` a été implémentée, mesurée (×2,09 plus lent, +250% d'allocations), puis retirée — même discipline de mesure que les succès. Le fichier `constitution.md` (bonus +2 pts) a également été rédigé. La table de transposition et les étapes suivantes ont été décalées d'un rang (désormais Étapes 11 à 15). Les étapes suivantes restent à réaliser. À garder à l'esprit : ce suivi devra être **consolidé en un rapport final unique** à la fin (Étape 15), puisque c'est ce document-là, et lui seul, qui sera noté.
 
 > 📌 **Rappel explicite (2026-09-23)** : comme pour HashBreaker, il faudra produire des **synthèses de résultats** à chaque étape clé (pas seulement un rapport final écrit d'un coup à la fin) — un tableau chiffré avant/après par levier appliqué, mis à jour au fur et à mesure. C'est cette accumulation progressive de synthèses qui alimentera directement le tableau de synthèse comparatif final (Axe 5) et le rapport d'audit — pas une reconstruction a posteriori en fin de projet, qui serait bien moins fiable et plus difficile à sourcer.
 

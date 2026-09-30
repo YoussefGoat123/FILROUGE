@@ -23,6 +23,7 @@ Chaque fichier doit être **autonome** (pas seulement un lien vers `shemas/`) et
 | 07 | Profiling réel & Hot Path (Axe 2) | [07-profiling-reel.md](07-profiling-reel.md) |
 | 08 | Tri des coups (MVV-LVA, macro) | [08-tri-coups.md](08-tri-coups.md) |
 | 09 | Recherche à budget de temps (iterative deepening) | [09-recherche-budget-temps.md](09-recherche-budget-temps.md) |
+| 10 | Échec Constructif : cache naïf de roiEnEchec() (Axe 4) | [10-echec-constructif.md](10-echec-constructif.md) |
 
 ## Synthèse consolidée des performances (toutes étapes, position de départ)
 

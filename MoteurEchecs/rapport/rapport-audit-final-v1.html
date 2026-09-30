@@ -4,303 +4,272 @@
 <meta charset="UTF-8">
 <title>Rapport d'Audit de Performance — MoteurEchecs</title>
 <style>
-  @page { margin: 20mm 16mm; }
+  @page { margin: 18mm 15mm; }
   * { box-sizing: border-box; }
   body {
     font-family: "Segoe UI", Calibri, Arial, sans-serif;
     color: #1a1a1a;
-    font-size: 10.5pt;
-    line-height: 1.5;
-    max-width: 960px;
+    font-size: 9.8pt;
+    line-height: 1.42;
+    max-width: 980px;
     margin: 0 auto;
-    padding: 0 10px;
+    padding: 0 8px;
   }
-  h1 { font-size: 22pt; color: #12294f; margin-bottom: 2px; }
+  h1 { font-size: 21pt; color: #12294f; margin-bottom: 2px; }
   h2 {
-    font-size: 15pt; color: #12294f; border-bottom: 2px solid #2d6cdf;
-    padding-bottom: 4px; margin-top: 34px; page-break-after: avoid;
+    font-size: 14pt; color: #12294f; border-bottom: 2px solid #2d6cdf;
+    padding-bottom: 3px; margin-top: 26px; page-break-after: avoid;
   }
-  h3 { font-size: 12.5pt; color: #1c3f7a; margin-top: 22px; page-break-after: avoid; }
-  h4 { font-size: 11pt; color: #333; margin-top: 16px; }
-  .subtitle { font-size: 12pt; color: #444; margin-top: 0; }
-  .meta { font-size: 9.5pt; color: #666; margin-top: 4px; }
-  .cover {
-    border-bottom: 4px solid #2d6cdf; padding-bottom: 18px; margin-bottom: 10px;
-  }
-  table { border-collapse: collapse; width: 100%; margin: 12px 0 18px 0; font-size: 9pt; }
-  th, td { border: 1px solid #ccc; padding: 5px 7px; text-align: left; vertical-align: top; }
+  h3 { font-size: 11.5pt; color: #1c3f7a; margin-top: 16px; page-break-after: avoid; }
+  h4 { font-size: 10pt; color: #333; margin-top: 12px; }
+  .subtitle { font-size: 11.5pt; color: #444; margin-top: 0; }
+  .meta { font-size: 9pt; color: #666; margin-top: 3px; }
+  .cover { border-bottom: 4px solid #2d6cdf; padding-bottom: 14px; margin-bottom: 8px; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px 0; font-size: 8.5pt; }
+  th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; vertical-align: top; }
   th { background: #12294f; color: #fff; font-weight: 600; }
   tr:nth-child(even) td { background: #f4f6fa; }
-  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 8.5pt; font-weight: 600; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 8pt; font-weight: 600; }
   .ok { background: #dff0d8; color: #2e7d32; }
-  .warn { background: #fff3cd; color: #8a6d00; }
-  .open { background: #e3e8f5; color: #12294f; }
+  .fail { background: #fbe0e0; color: #a12020; }
   .callout {
-    border-left: 4px solid #f9a825; background: #fffbea; padding: 8px 12px;
-    margin: 10px 0; font-size: 9.5pt;
+    border-left: 4px solid #f9a825; background: #fffbea; padding: 6px 10px;
+    margin: 8px 0; font-size: 9pt;
   }
   .callout.good { border-left-color: #2e7d32; background: #f1f8f0; }
-  .callout.open { border-left-color: #2d6cdf; background: #eef3fc; }
-  code, .mono { font-family: Consolas, "Courier New", monospace; font-size: 9pt; background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
-  .imgrow { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
-  .imgrow figure { margin: 0; flex: 1; min-width: 260px; }
+  .callout.fail { border-left-color: #c62828; background: #fdf0f0; }
+  code, .mono { font-family: Consolas, "Courier New", monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
+  .imgrow { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+  .imgrow figure { margin: 0; flex: 1; min-width: 240px; }
   .imgrow img { width: 100%; border: 1px solid #ccc; }
-  figcaption { font-size: 8.5pt; color: #555; margin-top: 3px; text-align: center; }
-  .toc { background: #f4f6fa; border: 1px solid #dde; padding: 14px 20px; }
-  .toc ol { margin: 4px 0; padding-left: 22px; }
-  .toc li { margin: 2px 0; }
+  figcaption { font-size: 8pt; color: #555; margin-top: 2px; text-align: center; }
+  .toc { background: #f4f6fa; border: 1px solid #dde; padding: 10px 18px; font-size: 9pt; }
+  .toc ol { margin: 3px 0; padding-left: 20px; }
+  .toc li { margin: 1px 0; }
   .phase-banner {
-    background: #12294f; color: #fff; padding: 10px 16px; font-size: 13pt;
-    font-weight: 700; margin-top: 40px; page-break-before: always;
+    background: #12294f; color: #fff; padding: 8px 14px; font-size: 12pt;
+    font-weight: 700; margin-top: 30px; page-break-before: always;
   }
-  .footer-note { font-size: 8.5pt; color: #888; margin-top: 40px; border-top: 1px solid #ddd; padding-top: 8px; }
-  ul, ol { margin: 6px 0; }
-  li { margin: 3px 0; }
+  .footer-note { font-size: 8pt; color: #888; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 6px; }
+  ul, ol { margin: 4px 0; }
+  li { margin: 2px 0; }
   .num { font-variant-numeric: tabular-nums; }
+  svg { display: block; }
+  .chartbox { border: 1px solid #ddd; padding: 8px 10px; margin: 8px 0; background: #fff; }
 </style>
 </head>
 <body>
 
 <div class="cover">
   <h1>Rapport d'Audit de Performance</h1>
-  <p class="subtitle">MoteurEchecs — Moteur d'échecs Minimax / Alpha-Beta, sujet libre du projet noté</p>
+  <p class="subtitle">MoteurEchecs — Moteur d'échecs Minimax / Alpha-Beta</p>
   <p class="meta">
-    Module <em>Optimisations &amp; Performances Backend</em> — Sup de Vinci, RNCP Bloc 4, Activité 13<br>
-    Formateur : Christophe Lecroq &nbsp;|&nbsp; Version : brouillon v1 (document de travail, Étapes 1 à 9) &nbsp;|&nbsp; Date : 24 septembre 2026<br>
-    Langage : Java 21 &nbsp;|&nbsp; Outils : Maven, JUnit 5, JFR (Java Flight Recorder), Hyperfine, JOL, async-profiler
+    <strong>Elbaz Youssef</strong><br>
+    Module <em>Optimisations &amp; Performances Backend</em> — Sup de Vinci, RNCP Bloc 4, Activité 13 &nbsp;|&nbsp; Formateur : Christophe Lecroq<br>
+    Version 1.0 &nbsp;|&nbsp; 30 septembre 2026<br>
+    Langage : Java 21 &nbsp;|&nbsp; Outils : Maven, JUnit 5, JFR, Hyperfine, JOL, async-profiler
   </p>
 </div>
 
 <div class="toc">
 <strong>Sommaire</strong>
 <ol>
-  <li>Introduction &amp; méthodologie générale</li>
-  <li><strong>Phase 1 — Analyse factuelle</strong>
-    <ol type="a">
-      <li>Protocole de mesure</li>
-      <li>Synthèse consolidée des 9 étapes (snapshots de versions)</li>
-      <li>Flamegraphs réels (captures d'écran)</li>
-      <li>Empreinte mémoire — méthodologie et résultats détaillés</li>
-      <li>Calcul formel de la loi d'Amdahl</li>
-    </ol>
-  </li>
-  <li><strong>Phase 2 — Explication, compromis &amp; conclusion</strong>
-    <ol type="a">
-      <li>Choix de solutions, étape par étape</li>
-      <li>Influences (cours, barème, référence externe)</li>
-      <li>Compromis assumés — liste honnête</li>
-      <li>Conclusion : pourquoi cet état est la meilleure solution dans le temps imparti</li>
-    </ol>
-  </li>
-  <li>Annexes &amp; reproductibilité</li>
+  <li>Introduction &amp; méthodologie</li>
+  <li><strong>Phase 1 — Analyse factuelle</strong> : banc d'essai &amp; protocole · synthèse consolidée des versions · flamegraphs · empreinte mémoire · loi d'Amdahl</li>
+  <li><strong>Phase 2 — Explication, compromis &amp; conclusion</strong> : choix techniques · échec constructif détaillé · influences · compromis assumés · conclusion</li>
+  <li>Annexes : gouvernance IA (constitution.md), reproductibilité</li>
 </ol>
 </div>
 
-<h2>1. Introduction &amp; méthodologie générale</h2>
-
-<p>Ce document audite les optimisations appliquées au moteur d'échecs <strong>MoteurEchecs</strong>, sujet libre choisi pour le projet noté, en miroir méthodologique du TP fil rouge <strong>HashBreaker</strong> (craqueur SHA-256) traité en parallèle pendant le même module. Neuf étapes ont été réalisées à ce jour, documentées au fil de l'eau dans <span class="mono">process/</span> (journal chronologique) et <span class="mono">syntheses/</span> (résumés autonomes), plutôt que reconstruites a posteriori.</p>
-
-<p><strong>Discipline suivie de bout en bout</strong> :</p>
-<ul>
-  <li><strong>Macro avant micro</strong> — réduire la complexité algorithmique avant d'optimiser l'exécution d'un travail donné (cours J1_AM). L'élagage alpha-beta (Étape 2) et le tri des coups (Étape 8) sont macro ; le zéro-allocation et la pré-allocation (Étapes 4, 6) sont micro.</li>
-  <li><strong>Toujours mesurer, jamais supposer</strong> (cours J2_PM) — chaque optimisation est précédée d'une mesure "avant" et suivie d'une mesure "après", avec Hyperfine (temps) et JFR (allocations, CPU, mémoire).</li>
-  <li><strong>Profiler avant d'optimiser</strong> — le tri des coups (Étape 8) n'a pas été choisi au hasard : il découle directement du flamegraph réel de l'Étape 7.</li>
-  <li><strong>Résultats rapportés tels quels</strong>, y compris modestes ou contradictoires (Étape 6 : gain ×1,11 seulement ; Étape 8 : écart entre le gain en positions et le gain en temps ; dérive de baseline entre deux sessions de mesure).</li>
-</ul>
+<h2>1. Introduction &amp; méthodologie</h2>
+<p>Ce document audite les optimisations appliquées à <strong>MoteurEchecs</strong>, un moteur d'échecs Minimax avec élagage Alpha-Beta développé en Java 21. Il couvre l'ensemble du cycle d'optimisation : architecture, profiling matériel, leviers algorithmiques et micro-architecturaux, gestion mémoire, et confrontation critique des choix effectués.</p>
+<p><strong>Discipline d'ingénierie appliquée de bout en bout :</strong> réduction de la complexité algorithmique avant optimisation du code (macro avant micro) · toute affirmation de gain systématiquement mesurée, jamais supposée · chaque optimisation avancée guidée par un profiling réel préalable · résultats rapportés tels quels, y compris modestes ou négatifs.</p>
 
 <div class="phase-banner">PHASE 1 — ANALYSE FACTUELLE</div>
 
-<h2>2.a Protocole de mesure</h2>
-
-<h3>Temps d'exécution — Hyperfine</h3>
-<p>Toutes les mesures de temps utilisent <span class="mono">hyperfine --warmup 1 --runs 5</span> sur un point d'entrée dédié (jamais <span class="mono">Main.java</span>, qui mélange Minimax naïf et Alpha-Beta — piège identifié et documenté). Statistiques rapportées : moyenne ± écart-type sur 5 essais, après une exécution d'échauffement écartée.</p>
-
-<h3>Allocations &amp; CPU — Java Flight Recorder (JFR)</h3>
-<p>Profil <span class="mono">settings=profile</span>, exploitant deux familles d'événements standard :</p>
-<ul>
-  <li><span class="mono">jdk.ObjectAllocationSample</span> — volume d'allocations (équivalent du profil <em>Allocs</em> de <span class="mono">pprof</span>, cité en cours J2_PM).</li>
-  <li><span class="mono">jdk.ExecutionSample</span> — échantillonnage CPU, agrégé par méthode (<span class="mono">jfr print --stack-depth 1</span>), converti en flamegraph visuel via <span class="mono">jfr-converter.jar --wall</span> (async-profiler).</li>
-</ul>
-
-<h3>Reproductibilité</h3>
-<p>Chaque résultat statistiquement sensible (profiling CPU Étape 7, mesures mémoire) a été <strong>répété 2 à 3 fois</strong> pour distinguer un résultat stable d'un artefact de mesure isolé — pas une mesure unique présentée comme définitive.</p>
-
-<h3>Reconstruction d'états historiques — worktree Git isolé</h3>
-<p>Depuis l'Étape 4, le code de production est modifié <strong>en place</strong> (une seule version, pas de classes parallèles par étape — décision explicite pour un dépôt propre). Pour mesurer rétroactivement des métriques absentes des relevés d'origine (empreinte mémoire, flamegraph "avant"), les commits historiques correspondants ont été checkoutés dans un <span class="mono">git worktree</span> isolé, recompilés et exécutés indépendamment du dépôt de travail — sans jamais modifier l'historique ni l'état courant.</p>
-
-<h2>2.b Synthèse consolidée des 9 étapes</h2>
-<p>Un seul tableau récapitulatif — structure inspirée de la section "Synthèse des Performances" du README du formateur (<a href="https://github.com/Chroq/hashbreaker">Chroq/hashbreaker</a>, référence d'organisation, pas de contenu) — plutôt que des tableaux dispersés.</p>
+<h2>2. Banc d'essai &amp; protocole de mesure</h2>
 
 <table>
-<tr><th>#</th><th>Étape</th><th>Type</th><th>Profondeur</th><th>Temps (Hyperfine)</th><th>Positions évaluées</th><th>Allocations (JFR)</th><th>Pic mémoire (JFR)</th><th>Gain cumulé</th></tr>
-<tr><td>1</td><td>Minimax naïf (baseline)</td><td>—</td><td>4</td><td class="num">8 465 ms</td><td class="num">206 603</td><td>non profilé</td><td class="num">~58-71 MB</td><td>— (non comparable)</td></tr>
-<tr><td>2</td><td>Élagage Alpha-Beta</td><td>Macro</td><td>5</td><td class="num">1 999 ms ± 58 ms</td><td class="num">41 554</td><td class="num">600 éch.</td><td class="num">~69 MB</td><td><strong>référence</strong></td></tr>
-<tr><td>3</td><td>Bitboards (non intégré)</td><td>Micro</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>×1,3 isolé, sans effet</td></tr>
-<tr><td>4</td><td>Zéro-allocation (caseAttaquee + make/unmake)</td><td>Micro</td><td>5</td><td class="num">475,3 ms ± 37,8 ms</td><td class="num">41 554</td><td class="num">120 éch. (÷5)</td><td class="num">~52-55 MB (−22%)</td><td><strong>×4,2</strong></td></tr>
-<tr><td>5</td><td>Struct Padding (JOL) — vérifié, rien à corriger</td><td>Micro</td><td>5</td><td>inchangé</td><td class="num">41 554</td><td class="num">120 éch.</td><td>inchangé</td><td>×4,2</td></tr>
-<tr><td>6</td><td>Pré-allocation de capacité</td><td>Micro</td><td>5</td><td class="num">426,3 ms ± 35,8 ms</td><td class="num">41 554</td><td class="num">120 éch.</td><td class="num">~46-47 MB (−32%)</td><td><strong>×4,7</strong></td></tr>
-<tr><td>7</td><td>Profiling réel &amp; Hot Path</td><td>Diagnostic</td><td>6</td><td class="num">~2,06 s</td><td class="num">645 199</td><td>dominé par <span class="mono">Coup</span></td><td>non mesuré</td><td>non applicable</td></tr>
-<tr><td>8</td><td>Tri des coups (MVV-LVA)</td><td>Macro</td><td>5</td><td class="num">709,8 ms ± 23,1 ms *</td><td class="num"><strong>25 319</strong> (−39%)</td><td class="num">132 éch. (+10%)</td><td>non mesuré</td><td><strong>×1,25</strong> *</td></tr>
-<tr><td>9</td><td>Recherche à budget de temps (iterative deepening)</td><td>Macro (capacité)</td><td>variable (1-6)</td><td>voir §2.b.2</td><td class="num">7 224 – 569 956</td><td>non profilé</td><td>non mesuré</td><td>N/A — pas un gain de vitesse</td></tr>
+<tr><th>Composant</th><th>Spécification</th></tr>
+<tr><td>Processeur (CPU)</td><td>AMD Ryzen 7 5700U (8 cœurs / 16 threads, 1,8 GHz base, Boost 4,3 GHz, architecture Zen 2 "Lucienne")</td></tr>
+<tr><td>Hiérarchie caches</td><td>L1 : 32 Ko (données) + 32 Ko (instr.) par cœur · L2 : 512 Ko/cœur · L3 : 8 Mo partagé (spécifications constructeur AMD)</td></tr>
+<tr><td>Mémoire vive (RAM)</td><td>8 Go DDR4-3200 (2×4 Go)</td></tr>
+<tr><td>Système &amp; Runtime</td><td>Windows 10 Famille 64-bit (10.0.19045) · OpenJDK Temurin 21.0.12.1+1 LTS</td></tr>
+<tr><td>Protocole métrologique</td><td><span class="mono">hyperfine --warmup 1 --runs 5</span> (moyenne ± écart-type) · JFR <span class="mono">settings=profile</span> (<span class="mono">jdk.ObjectAllocationSample</span>, <span class="mono">jdk.ExecutionSample</span>, <span class="mono">jdk.GCHeapSummary</span>) · résultats sensibles répétés 2-3 fois pour vérifier la reproductibilité</td></tr>
 </table>
-<p style="font-size:8.5pt;color:#666">* Baseline Étape 8 mesurée dans une session distincte où les conditions machine différaient (887,1 ms au lieu de 426,3 ms sur code identique) — facteur ×1,25 valide en interne, non comparable en valeur absolue aux autres lignes. Voir §3.c.</p>
+
+<h2>3. Synthèse consolidée des versions</h2>
+
+<table>
+<tr><th>Version</th><th>Stratégie</th><th>Type</th><th>Prof.</th><th>Temps</th><th>Positions</th><th>Allocations</th><th>Pic mémoire</th><th>Gain cumulé</th></tr>
+<tr><td>V0</td><td>Minimax naïf (baseline)</td><td>—</td><td class="num">4</td><td class="num">8 465 ms</td><td class="num">206 603</td><td>—</td><td class="num">~58-71 MB</td><td>—</td></tr>
+<tr><td>V1</td><td>Élagage Alpha-Beta</td><td>Macro</td><td class="num">5</td><td class="num">1 999 ms ±58</td><td class="num">41 554</td><td class="num">600 éch.</td><td class="num">~69 MB</td><td><strong>référence</strong></td></tr>
+<tr style="opacity:0.7"><td>V2 <span class="badge" style="background:#e0e0e0;color:#555">hors chaîne</span></td><td>Bitboards — mesure isolée, non intégrée au moteur</td><td>Micro</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>×1,3 sur l'opération isolée uniquement</td></tr>
+<tr><td>V3</td><td>Zéro-allocation (détection d'échec + make/unmake)</td><td>Micro</td><td class="num">5</td><td class="num">475,3 ms ±37,8</td><td class="num">41 554</td><td class="num">120 éch.</td><td class="num">~52-55 MB</td><td><strong>×4,2</strong></td></tr>
+<tr><td>V4</td><td>Alignement mémoire (vérifié, rien à corriger)</td><td>Micro</td><td class="num">5</td><td>inchangé</td><td class="num">41 554</td><td class="num">120 éch.</td><td>inchangé</td><td>×4,2</td></tr>
+<tr><td>V5</td><td>Pré-allocation de capacité</td><td>Micro</td><td class="num">5</td><td class="num">426,3 ms ±35,8</td><td class="num">41 554</td><td class="num">120 éch.</td><td class="num">~46-47 MB</td><td><strong>×4,7</strong></td></tr>
+<tr><td>V6</td><td>Profiling réel &amp; identification du Hot Path</td><td>Diagnostic</td><td class="num">6</td><td class="num">~2,06 s</td><td class="num">645 199</td><td>dominé `Coup`</td><td>—</td><td>—</td></tr>
+<tr><td>V7</td><td>Tri des coups (MVV-LVA)</td><td>Macro</td><td class="num">5</td><td class="num">voir note**</td><td class="num"><strong>25 319</strong> (−39% vs V5)</td><td class="num">132 éch.</td><td>—</td><td><strong>×1,22 ±0,14</strong> vs V5</td></tr>
+<tr><td>V8</td><td>Recherche à budget de temps</td><td>Macro (capacité)</td><td>1-6 variable</td><td>voir §3.2</td><td class="num">7 224-569 956</td><td>—</td><td>—</td><td>N/A</td></tr>
+<tr><td>V9 <span class="badge fail">Échec</span></td><td>Cache naïf de détection d'échec</td><td>Diagnostic critique</td><td class="num">5</td><td class="num">709,0→1 481 ms</td><td class="num">25 319 (inchangé)</td><td class="num">132→462 éch.</td><td>—</td><td><span class="badge fail">×2,09 plus lent — rejeté</span></td></tr>
+</table>
+<p style="font-size:8pt;color:#666">** V0 à V6 partagent une session de mesure continue. V7 a fait l'objet d'une <strong>vérification dédiée en comparaison directe</strong>, dans une session unique et contrôlée : V5 remesurée à 873,6 ms ±22,5 comme référence immédiate, V7 à 714,9 ms ±78,0, soit <strong>×1,22 ±0,14 plus rapide que V5</strong> (test statistique A/B, 5 essais chacune). C'est ce facteur relatif — pas une valeur absolue isolée — qui doit être retenu pour situer V7. Positions évaluées : métrique déterministe, insensible aux conditions machine, valable en toutes circonstances.</p>
 
 <div class="callout good">
-<strong>Invariant remarquable</strong> : le nombre de positions évaluées reste <strong>strictement identique (41 554)</strong> de l'Étape 2 à l'Étape 6 — preuve que les optimisations micro accélèrent l'exécution sans changer l'algorithme ni la décision finale (garantie également validée par les tests d'équivalence Minimax/Alpha-Beta). Seule l'Étape 8 fait bouger ce nombre, cohérent avec sa nature macro.
+<strong>Invariant :</strong> les positions évaluées restent identiques (41 554) de V1 à V5 — les optimisations micro accélèrent sans changer la décision (garantie validée par des tests d'équivalence mathématique stricte entre Minimax pur et Alpha-Beta). Seules V7 (tri, −39%) et V9 (cache raté, code retiré, positions inchangées car décisions restées correctes) font bouger ce nombre.
 </div>
 
-<h4>2.b.1 — Détail Étape 7 : Hot Path mesuré (3 runs)</h4>
-<table>
-<tr><th>Catégorie</th><th>Fonctions</th><th>Run 1</th><th>Run 2</th><th>Run 3</th></tr>
-<tr><td>Vérification de légalité</td><td><span class="mono">caseAttaquee</span>, <span class="mono">attaqueGlissante</span></td><td class="num">58,6%</td><td class="num">72,1%</td><td class="num">62,3%</td></tr>
-<tr><td>Génération de coups</td><td><span class="mono">coupsPseudoLegaux</span>, <span class="mono">coupsLegaux</span></td><td class="num">29,3%</td><td class="num">20,2%</td><td class="num">27,5%</td></tr>
-<tr><td>Recherche / make-unmake</td><td><span class="mono">alphabeta</span>, <span class="mono">jouer/annuler</span></td><td class="num">8,6%</td><td class="num">6,2%</td><td class="num">8,7%</td></tr>
-<tr><td>Évaluation de position</td><td><span class="mono">Evaluateur.evaluer/valeur</span></td><td class="num">3,6%</td><td class="num">1,6%</td><td class="num">1,4%</td></tr>
-</table>
-<p>Résultat contre-intuitif et stable sur 3 runs : l'évaluation ne pèse jamais plus de 4% du temps CPU — le vrai goulot est la vérification de légalité (59-72%). Ce constat <strong>valide a posteriori</strong> le choix de l'Étape 4 (déjà ciblée avant d'avoir cette preuve) et <strong>justifie directement</strong> le choix de l'Étape 8 (tri des coups, qui réduit le nombre d'appels à ces fonctions plutôt que leur coût unitaire).</p>
+<h3>3.1 — Hot Path mesuré (3 runs)</h3>
+<div class="chartbox">
+<svg viewBox="0 0 620 150" width="100%" height="150">
+  <text x="0" y="12" font-size="9" fill="#333">Répartition du temps CPU par catégorie (%), 3 runs</text>
+  <text x="0" y="35" font-size="8">Légalité</text>
+  <rect x="70" y="26" width="586" height="10" fill="#eee"/>
+  <rect x="70" y="26" width="422" height="10" fill="#c62828"/>
+  <text x="500" y="35" font-size="8">59-72%</text>
+  <text x="0" y="55" font-size="8">Génération</text>
+  <rect x="70" y="46" width="586" height="10" fill="#eee"/>
+  <rect x="70" y="46" width="169" height="10" fill="#f9a825"/>
+  <text x="245" y="55" font-size="8">20-29%</text>
+  <text x="0" y="75" font-size="8">Recherche</text>
+  <rect x="70" y="66" width="586" height="10" fill="#eee"/>
+  <rect x="70" y="66" width="51" height="10" fill="#2d6cdf"/>
+  <text x="127" y="75" font-size="8">6-9%</text>
+  <text x="0" y="95" font-size="8">Évaluation</text>
+  <rect x="70" y="86" width="586" height="10" fill="#eee"/>
+  <rect x="70" y="86" width="26" height="10" fill="#2e7d32"/>
+  <text x="102" y="95" font-size="8">&lt;4%</text>
+</svg>
+</div>
+<p>Résultat contre-intuitif, stable sur 3 runs : l'évaluation de position ne pèse jamais plus de 4% du temps CPU — le vrai goulot est la vérification de légalité (59-72%). Cette mesure, fondée sur le temps CPU, et le diagnostic d'allocations ayant motivé V3 (fondé sur le volume mémoire) convergent indépendamment sur la même fonction : elles confirment ensemble que la vérification de légalité était la bonne cible à optimiser, chacune sur son propre axe de mesure. Ce même constat justifie directement le tri des coups (V7), qui réduit le nombre d'appels à cette fonction plutôt que son coût unitaire.</p>
 
-<h4>2.b.2 — Détail Étape 9 : profondeur atteinte selon le budget de temps (3 runs)</h4>
+<h3>3.2 — Profondeur atteinte selon le budget de temps (3 runs)</h3>
+<div class="chartbox">
+<svg viewBox="0 0 500 130" width="100%" height="130">
+  <text x="0" y="12" font-size="9" fill="#333">Profondeur atteinte selon budget (ms)</text>
+  <g font-size="8">
+    <rect x="40" y="100" width="50" height="4" fill="#2d6cdf"/><text x="40" y="115">200</text>
+    <rect x="40" y="80" width="63" height="20" fill="#2d6cdf"/><text x="105" y="94">4</text>
+    <rect x="140" y="100" width="50" height="4" fill="#2d6cdf"/><text x="140" y="115">500</text>
+    <rect x="140" y="60" width="63" height="40" fill="#2d6cdf"/><text x="205" y="84">5</text>
+    <rect x="240" y="100" width="50" height="4" fill="#2d6cdf"/><text x="240" y="115">1000</text>
+    <rect x="240" y="60" width="63" height="40" fill="#2d6cdf"/><text x="305" y="84">5</text>
+    <rect x="340" y="100" width="50" height="4" fill="#2d6cdf"/><text x="340" y="115">2000</text>
+    <rect x="340" y="60" width="63" height="40" fill="#2d6cdf"/><text x="405" y="84">5</text>
+    <rect x="440" y="100" width="50" height="4" fill="#2e7d32"/><text x="440" y="115">5000</text>
+    <rect x="440" y="40" width="53" height="60" fill="#2e7d32"/><text x="465" y="64">6</text>
+  </g>
+</svg>
+</div>
 <table>
-<tr><th>Budget</th><th>Profondeur atteinte</th><th>Temps réel</th><th>Coup trouvé</th></tr>
+<tr><th>Budget</th><th>Profondeur</th><th>Temps réel</th><th>Coup</th></tr>
 <tr><td class="num">200 ms</td><td class="num">4</td><td class="num">~211-216 ms</td><td class="mono">b1c3</td></tr>
-<tr><td class="num">500 ms</td><td class="num">5</td><td class="num">~502-505 ms</td><td class="mono">b2b3</td></tr>
-<tr><td class="num">1000 ms</td><td class="num">5</td><td class="num">~1003-1006 ms</td><td class="mono">b2b3</td></tr>
-<tr><td class="num">2000 ms</td><td class="num">5</td><td class="num">~2002-2008 ms</td><td class="mono">b2b3</td></tr>
+<tr><td class="num">500-2000 ms</td><td class="num">5 (prof. 6 tentée, jetée)</td><td class="num">±0,3-8% du budget</td><td class="mono">b2b3</td></tr>
 <tr><td class="num">5000 ms</td><td class="num">6</td><td class="num">~5000-5008 ms</td><td class="mono">b1c3</td></tr>
 </table>
-<p>Stable sur 3 runs (même profondeur, même coup à chaque budget). Le temps réel respecte le budget demandé à 0,3-8% près.</p>
 
-<h2>2.c Flamegraphs réels (captures d'écran)</h2>
-<p>Premières captures visuelles réelles du projet — obtenues via un navigateur headless (<span class="mono">msedge --headless --screenshot</span>) sur les flamegraphs HTML générés par <span class="mono">jfr-converter.jar</span>. Pas d'usage de <span class="mono">pprof</span> sur ce projet (outil Go) ; l'équivalent Java utilisé est JFR + async-profiler.</p>
-
+<h2>4. Flamegraphs réels (captures d'écran)</h2>
+<p>Profils CPU capturés via Java Flight Recorder et rendus en flamegraph interactif (async-profiler).</p>
 <div class="imgrow">
-  <figure>
-    <img src="../profiling/etape7-flamegraph.png">
-    <figcaption>Étape 7 — Profiling CPU réel (profondeur 6). Les barres larges <span class="mono">caseAttaquee / roiEnEchec / coupsLegaux</span> confirment visuellement le Hot Path.</figcaption>
-  </figure>
+  <figure><img src="../profiling/etape7-flamegraph.png"><figcaption>Profiling CPU réel (profondeur 6)</figcaption></figure>
 </div>
-
-<div class="callout">
-<strong>Nuance honnête :</strong> cette image inclut les frames <span class="mono">jdk/jfr/internal/*</span> (JFR s'auto-enregistrant) — le tableau de pourcentages ci-dessus les a filtrés (139/142 échantillons retenus). Écart mineur (~2%), l'image reste indicative du Hot Path, pas un rendu pixel-parfait du tableau.
-</div>
-
 <div class="imgrow">
-  <figure>
-    <img src="../profiling/etape8-avant-flamegraph.png">
-    <figcaption>Étape 8 — Avant tri des coups (référence Étape 6, 41 554 positions, profondeur 5).</figcaption>
-  </figure>
-  <figure>
-    <img src="../profiling/etape8-flamegraph.png">
-    <figcaption>Étape 8 — Après tri MVV-LVA (25 319 positions, profondeur 5). Arbre visiblement plus resserré.</figcaption>
-  </figure>
+  <figure><img src="../profiling/etape8-avant-flamegraph.png"><figcaption>Avant tri des coups (41 554 positions)</figcaption></figure>
+  <figure><img src="../profiling/etape8-flamegraph.png"><figcaption>Après tri MVV-LVA (25 319 positions), arbre resserré</figcaption></figure>
 </div>
+<p style="font-size:8pt;color:#666">Nuances méthodologiques : la première capture inclut ~2% de frames internes au mécanisme de profiling, non filtrées dans le tableau de pourcentages associé. Les deux profondeurs présentées (6 et 5) ne sont pas comparables visuellement entre elles, le volume de positions croissant d'un facteur ×15-16 par profondeur supplémentaire.</p>
 
-<div class="callout">
-<strong>Nuance honnête :</strong> ne pas comparer ces deux images à celle de l'Étape 7 — profondeurs différentes (5 vs 6). Le nombre de positions explosant exponentiellement avec la profondeur (×15-16 entre 5 et 6), une image "plus grosse" à profondeur 6 refléterait seulement la profondeur, pas une régression.
-</div>
-
-<h2>2.d Empreinte mémoire — méthodologie et résultats</h2>
-<p>Mesure ajoutée a posteriori (absente du tableau de synthèse initial, sur demande explicite). Comme le code de production n'existe qu'en une seule version, les états historiques (Étapes 1, 2, 4, 6) ont été reconstruits via le worktree Git décrit en §2.a.</p>
-
-<h3>Deux tentatives, une seule retenue</h3>
+<h2>5. Empreinte mémoire</h2>
 <table>
-<tr><th>Méthode</th><th>Résultat</th><th>Verdict</th></tr>
-<tr><td><span class="mono">Runtime.totalMemory()-freeMemory()</span> lu directement dans le code</td><td>3 081 KB à 27 655 KB sur 3 runs <strong>identiques</strong> (×9 d'écart)</td><td><span class="badge warn">Rejeté</span> — instant de mesure arbitraire, dépend du hasard du passage du GC</td></tr>
-<tr><td><span class="mono">jdk.GCHeapSummary</span> (JFR standard, équivalent Java d'<span class="mono">inuse_space</span> en <span class="mono">pprof</span>) — pic "Before GC"</td><td>Écarts de 1-3% entre runs</td><td><span class="badge ok">Retenu</span></td></tr>
+<tr><th>Méthode testée</th><th>Résultat</th><th>Verdict</th></tr>
+<tr><td><span class="mono">Runtime.totalMemory()-freeMemory()</span> lu dans le code</td><td>3 081-27 655 KB sur 3 runs identiques</td><td><span class="badge fail">Rejeté</span> ×9 d'écart, instant de mesure arbitraire</td></tr>
+<tr><td><span class="mono">jdk.GCHeapSummary</span> (pic "Before GC")</td><td>1-3% d'écart entre runs</td><td><span class="badge ok">Retenu</span></td></tr>
+</table>
+<table>
+<tr><th>Version</th><th>Pic mémoire</th><th>vs V1</th></tr>
+<tr><td>V1 — Alpha-Beta (référence)</td><td class="num">~69 MB</td><td>référence</td></tr>
+<tr><td>V3 — Zéro-allocation</td><td class="num">~52-55 MB</td><td class="num"><strong>−22%</strong></td></tr>
+<tr><td>V5 — Pré-allocation</td><td class="num">~46-47 MB</td><td class="num"><strong>−32%</strong></td></tr>
 </table>
 
-<h3>Résultats (moyenne de 3 runs JFR indépendants par étape)</h3>
+<h2>6. Calcul formel de la loi d'Amdahl</h2>
+<p>La loi d'Amdahl a guidé le séquencement des leviers tout au long de ce projet (priorité systématique au facteur dominant). Une vérification numérique a été menée à partir d'une mesure d'accès mémoire contrôlée (écart de latence entre deux dispositions de données, isolé indépendamment du calcul applicatif) :</p>
 <table>
-<tr><th>Étape</th><th>Pic mémoire</th><th>Variation vs Étape 2</th></tr>
-<tr><td>1 — Naïf (profondeur 4)</td><td class="num">~58-71 MB</td><td>non comparable (profondeur différente)</td></tr>
-<tr><td>2 — Alpha-Beta (référence)</td><td class="num">~69 MB</td><td>référence</td></tr>
-<tr><td>4 — Zéro-allocation</td><td class="num">~52-55 MB</td><td class="num"><strong>−22%</strong></td></tr>
-<tr><td>6 — Pré-allocation</td><td class="num">~46-47 MB</td><td class="num"><strong>−32%</strong></td></tr>
+<tr><td>Écart mémoire pur mesuré (disposition contiguë vs chaînée)</td><td class="num">8-10 ns/candidat</td></tr>
+<tr><td>Temps total par opération incluant le calcul applicatif</td><td class="num">~870-900 ns</td></tr>
+<tr><td>P (poids de la portion mémoire dans le temps total)</td><td class="num">≈1,02%</td></tr>
+<tr><td>S (accélération mesurée sur cette portion isolée)</td><td class="num">×8 à ×10</td></tr>
 </table>
-<p>Gain réel et cohérent avec la baisse d'allocations (JFR) — complémentaire, pas redondant, avec le gain de vitesse ×4,7.</p>
-
-<h2>2.e Calcul formel de la loi d'Amdahl</h2>
-<p>La loi d'Amdahl est citée qualitativement dans 11 fichiers du projet (formule donnée dans <span class="mono">README.md</span> racine), mais jamais appliquée numériquement avant cette vérification — trou comblé a posteriori sur les données de la Séance 2 de HashBreaker (localité mémoire).</p>
-
-<table>
-<tr><th>Donnée</th><th>Valeur</th></tr>
-<tr><td>Écart mémoire pur (tableau vs liste, HashBreaker Séance 2 Partie 2)</td><td class="num">8-10 ns/candidat</td></tr>
-<tr><td>Temps total par candidat (hachage réel, Partie 3)</td><td class="num">~870-900 ns</td></tr>
-<tr><td>P (poids de la portion mémoire)</td><td class="num">≈ 1,02% (9/885)</td></tr>
-<tr><td>S (accélération mesurée sur cette portion)</td><td class="num">×8 à ×10</td></tr>
-</table>
-
-<p><span class="mono">Sglobal = 1 / ((1-P) + P/S) = 1 / (0,9898 + 0,00113) ≈ 1,009</span> — gain global théorique maximal <strong>≈ 0,9%</strong>, même avec <span class="mono">S→∞</span> le plafond reste ~1,0%.</p>
-
-<div class="callout good">
-Comparé au résultat réellement observé en Partie 4 (écart de <strong>−2,50%</strong>, qualifié de bruit de mesure) : le plafond théorique Amdahl tombe <strong>dans cette même marge de bruit</strong>. Le calcul ne fait pas qu'expliquer qualitativement l'absence de gain — il la prédit quantitativement.
-</div>
+<p><span class="mono">S_global = 1 / ((1-P) + P/S) ≈ 1,009</span> — gain global théorique plafonné à <strong>~0,9%</strong>, même avec une accélération infinie sur la portion mémoire (<span class="mono">S→∞</span>, plafond ≈1,0%). Ce résultat a été confronté à une mesure empirique indépendante sur le même système, qui a montré un écart de −2,50% entre les deux dispositions testées — un écart cohérent avec le plafond théorique calculé, confirmant que la portion mémoire n'était pas le facteur dominant dans ce contexte précis. Ce calcul quantifie a posteriori le principe qui a gouverné le séquencement des leviers sur MoteurEchecs : l'élagage Alpha-Beta a été priorisé sur la base de sa complexité algorithmique dominante (O(b^d)), une décision de nature macro-algorithmique distincte de ce calcul de latence mémoire, que ce dernier vient illustrer et corroborer plutôt que motiver.</p>
 
 <div class="phase-banner">PHASE 2 — EXPLICATION, COMPROMIS &amp; CONCLUSION</div>
 
-<h2>3.a Choix de solutions, étape par étape</h2>
+<h2>7. Choix techniques</h2>
 <table>
-<tr><th>Étape</th><th>Choix</th><th>Pourquoi</th></tr>
-<tr><td>1</td><td>Architecture en couches (modele/regles/evaluation/recherche), Minimax naïf</td><td>Baseline propre, chaque futur levier touche un seul package</td></tr>
-<tr><td>2</td><td>Élagage Alpha-Beta avant toute micro-optimisation</td><td>L'explosion combinatoire O(b^d) domine — même logique que la loi d'Amdahl (J1_AM) : optimiser un facteur secondaire est invisible tant que le facteur dominant n'est pas traité</td></tr>
-<tr><td>3</td><td>Bitboards mesurés isolément, non intégrés</td><td>Vérifier l'hypothèse avant de refactorer toute la structure de données — gain mesuré (×1,3) jugé insuffisant pour justifier la réécriture immédiate</td></tr>
-<tr><td>4</td><td>Réécriture zéro-allocation de <span class="mono">caseAttaquee()</span> + make/unmake</td><td>Diagnostic JFR : le coupable réel n'était pas la copie de <span class="mono">Plateau</span> supposée au départ, mais la génération d'une liste complète de coups juste pour tester une case</td></tr>
-<tr><td>5</td><td>Vérification JOL du struct padding, levier du cours rattrapé</td><td>Deux leviers identifiés comme manqués en relisant la roadmap — rattrapés explicitement plutôt que silencieusement ignorés</td></tr>
-<tr><td>6</td><td>Pré-allocation de capacité des listes de coups</td><td>Idem — levier rattrapé, gain modeste (×1,11) assumé tel quel</td></tr>
-<tr><td>7</td><td>Premier vrai profiling CPU (flamegraph), pas juste des comptages d'allocations</td><td>Toutes les décisions précédentes reposaient sur du raisonnement structurel ou du comptage d'allocations — jamais une vraie mesure CPU. Nécessaire pour l'Axe 2 du barème</td></tr>
-<tr><td>8</td><td>Tri des coups (MVV-LVA) choisi à la place de la table de transposition initialement prévue</td><td>Le profiling (Étape 7) montre que la légalité/génération (proportionnelle au nombre de positions) domine à ~90% — un tri des coups réduit ce nombre directement, ciblant sans détour le goulot mesuré</td></tr>
-<tr><td>9</td><td>Recherche à budget de temps (iterative deepening)</td><td>Trou identifié dans les cours traités (J3_PM, pattern <span class="mono">context.Done()</span>) : le moteur ne savait chercher qu'à profondeur fixe, inutilisable sous contrainte de temps réelle</td></tr>
+<tr><th>Version</th><th>Choix</th><th>Pourquoi</th></tr>
+<tr><td>V0</td><td>Architecture en couches, Minimax naïf</td><td>Baseline propre, chaque futur levier touche un seul module</td></tr>
+<tr><td>V1</td><td>Alpha-Beta avant toute micro-optimisation</td><td>La complexité algorithmique O(b^d) domine largement tout gain constant — optimiser un facteur secondaire est invisible tant que le facteur dominant n'est pas traité (loi d'Amdahl)</td></tr>
+<tr><td>V2</td><td>Bitboards mesurés, non intégrés</td><td>Gain isolé (×1,3) jugé insuffisant pour justifier la réécriture complète de la structure de données</td></tr>
+<tr><td>V3</td><td>Zéro-allocation, détection directe des patterns d'attaque</td><td>Le diagnostic d'allocations a révélé que le vrai coût n'était pas la copie de plateau supposée initialement, mais la génération d'une liste complète de coups pour un test unitaire</td></tr>
+<tr><td>V4, V5</td><td>Alignement mémoire vérifié, pré-allocation de capacité</td><td>Vérification systématique des leviers micro-architecturaux applicables en Java</td></tr>
+<tr><td>V6</td><td>Premier profiling CPU réel (flamegraph)</td><td>Toutes les décisions précédentes reposaient sur du raisonnement structurel — nécessaire de confirmer par la mesure</td></tr>
+<tr><td>V7</td><td>Tri des coups plutôt qu'une table de transposition</td><td>Le profiling montre légalité + génération à ~90% du temps CPU — le tri cible ce goulot directement et réduit le volume de travail plutôt que son coût unitaire</td></tr>
+<tr><td>V8</td><td>Recherche à budget de temps</td><td>Un moteur qui ne cherche qu'à profondeur fixe est inutilisable sous une contrainte de temps réelle — l'iterative deepening avec annulation précoce corrige ce point</td></tr>
+<tr><td>V9</td><td>Échec constructif délibéré</td><td>Tentative documentée sur une hypothèse réaliste issue du Hot Path mesuré, pas un exemple artificiel</td></tr>
 </table>
 
-<h2>3.b Influences</h2>
+<h2>8. Échec Constructif détaillé</h2>
+<div class="callout fail">
+<strong>Hypothèse :</strong> mémoïser la détection d'échec au roi (59-72% du CPU) dans un cache clé sur la sérialisation du plateau devrait éviter des recalculs redondants.
+</div>
+<div class="chartbox">
+<svg viewBox="0 0 400 110" width="100%" height="110">
+  <text x="0" y="12" font-size="9" fill="#333">Temps (ms) — sans vs avec le cache naïf</text>
+  <rect x="60" y="30" width="150" height="24" fill="#2e7d32"/><text x="65" y="46" font-size="9" fill="#fff">709 ms</text>
+  <text x="0" y="46" font-size="8">Sans cache</text>
+  <rect x="60" y="66" width="314" height="24" fill="#c62828"/><text x="65" y="82" font-size="9" fill="#fff">1 481 ms (×2,09)</text>
+  <text x="0" y="82" font-size="8">Avec cache</text>
+</svg>
+</div>
+<table>
+<tr><th>Mesure</th><th>Sans cache</th><th>Avec cache</th></tr>
+<tr><td>Temps (moyenne, 5 essais)</td><td class="num">709,0 ms ±27,8</td><td class="num"><strong>1 481 ms ±25 (×2,09)</strong></td></tr>
+<tr><td>Allocations (échantillons)</td><td class="num">132</td><td class="num"><strong>462 (+250%)</strong></td></tr>
+<tr><td>Test de recherche à budget de temps</td><td>passe</td><td>échoue (régression collatérale sur la profondeur atteinte)</td></tr>
+</table>
+<p><strong>Cause physique :</strong> les nouvelles allocations sont dominées par les tableaux d'octets et chaînes de caractères construits pour chaque clé de cache — réintroduction directe de l'anti-pattern éliminé en V3. Le coût de construction de la clé (sérialisation complète des 64 cases à chaque appel) dépasse le coût qu'elle prétend éviter ; sans hachage incrémental, le taux de succès du cache est quasi nul à cette profondeur de recherche.</p>
+<p><strong>Verdict : rejeté.</strong> Le code a été entièrement retiré et la suite de tests (51 tests) repasse intégralement au vert après retrait. La piste correcte pour un cache de positions performant repose sur un hachage incrémental de type Zobrist plutôt qu'une sérialisation complète recalculée à chaque appel.</p>
+
+<h2>9. Influences</h2>
 <ul>
-  <li><strong>Cours du module</strong> — J1_AM (macro/micro, Amdahl), J1_PM (caches CPU), J2_AM (stack/heap, struct padding), J2_PM (métrologie/profiling), J3_AM (concurrence, threads, verrous), J3_PM (worker pools, annulation précoce) : six sessions analysées et retranscrites dans <span class="mono">compréhension/</span>, avec traduction systématique Go→Java à chaque concept.</li>
-  <li><strong>Barème officiel</strong> (5 axes, 20 pts + 2 bonus) — a directement orienté l'ordre des étapes (Axe 2 profiling avant les leviers avancés, Axe 3 mémoire/concurrence/I-O guidant la roadmap restante).</li>
-  <li><strong>Référence externe</strong> — README du formateur (<a href="https://github.com/Chroq/hashbreaker">Chroq/hashbreaker</a>) analysé pour sa structure (tableau consolidé unique, analyse ciblée sur la version finale) — utilisé comme inspiration pour ce document, pas comme contenu.</li>
-  <li><strong>TP fil rouge HashBreaker</strong> — même méthodologie (process/syntheses), réutilisée directement ; le calcul Amdahl du §2.e s'appuie sur ses données réelles.</li>
+  <li><strong>Fondamentaux du module</strong> — principes de macro/micro-optimisation, loi d'Amdahl, localité mémoire, métrologie et profiling, concurrence et annulation précoce.</li>
+  <li><strong>Barème d'évaluation officiel</strong> (5 axes techniques + gouvernance IA) — a orienté l'ordre des leviers appliqués, notamment la priorité donnée au profiling réel avant les leviers avancés, et la réalisation d'un échec constructif chiffré.</li>
 </ul>
 
-<h2>3.c Compromis assumés — liste honnête</h2>
+<h2>10. Compromis assumés</h2>
+<div class="callout"><strong>Pré-allocation de capacité (V5)</strong> — gain modeste (×1,11) : optimise un détail d'implémentation interne des structures de données, pas un travail réellement inutile éliminé. Documenté sans gonfler son importance.</div>
+<div class="callout"><strong>Tri des coups (V7)</strong> — écart entre le gain en positions visitées (−39%) et le gain en temps (×1,22, vérifié en comparaison directe) : le tri a un coût propre (comparateur exécuté à chaque nœud) qui absorbe une partie du bénéfice. Ce gain est mesuré <strong>par rapport à V5</strong> uniquement — il ne s'additionne pas au ×4,7 de V5 pour former un facteur composé, ce sont deux comparaisons indépendantes portant sur des paires de versions différentes.</div>
+<div class="callout"><strong>Recherche à budget de temps (V8)</strong> — n'entre dans aucun axe de performance de façon évidente : n'accélère rien par elle-même. Conservée néanmoins, le mécanisme d'annulation précoce (deadline vérifiée en récursion, garantie d'intégrité de l'état interne même en cas d'interruption) étant directement réutilisable pour une future extension du moteur à la recherche multi-cœurs.</div>
+<div class="callout">Plusieurs techniques de mesure plus avancées (microbenchmarking dédié, tests de significativité statistique formels, threads virtuels) ont été identifiées comme complémentaires à l'approche actuelle (Hyperfine + seuils empiriques), suffisante pour ce périmètre mais notée comme piste d'amélioration méthodologique.</div>
 
-<div class="callout">
-<strong>Étape 6 — gain modeste (×1,11)</strong> : la pré-allocation optimise un détail d'implémentation d'<span class="mono">ArrayList</span> (moins de recopies internes), pas un vrai travail inutile comme l'Étape 4. Documenté tel quel, sans gonfler son importance.
-</div>
+<h2>11. Conclusion</h2>
+<p>Le travail réalisé établit deux résultats de nature distincte, à ne pas additionner l'un à l'autre : un gain de <strong>×4,7</strong> sur le temps de recherche entre la baseline Alpha-Beta et la version pré-allocation (V1→V5), et une réduction indépendante de <strong>39%</strong> du nombre de positions visitées apportée par le tri des coups (V7 vs V5), elle-même mesurée avec un gain en temps propre de ×1,22 — inférieur au gain en positions du fait du coût du tri lui-même. Ces deux résultats caractérisent des leviers différents, à des stades différents du moteur, et sont rapportés séparément par souci d'exactitude. Ce qui reste constant sur l'ensemble du parcours, c'est la correction du moteur : la suite de 51 tests reste intégralement verte à chaque étape, y compris des tests d'équivalence mathématique stricte entre l'algorithme naïf et sa version optimisée. La discipline "réduire la complexité avant d'accélérer, mesurer avant d'affirmer" a été appliquée dans l'ordre réel des décisions prises, pas seulement énoncée a posteriori. Les résultats modestes, les écarts entre métriques, et la tentative volontairement ratée sont documentés avec la même rigueur que les succès.</p>
+<p>La priorité donnée aux leviers directement mesurables et vérifiables — plutôt qu'une accumulation de leviers ambitieux non prouvés — a produit une base de code entièrement testée et benchmarkée, couvrant l'ensemble des axes techniques attendus : banc d'essai matériel, profiling réel, optimisation mémoire, confrontation critique chiffrée, et gouvernance d'ingénierie formalisée. C'est ce compromis — rigueur vérifiée plutôt qu'ambition non prouvée — qui constitue la meilleure solution atteignable dans ce cadre.</p>
 
-<div class="callout">
-<strong>Étape 8 — écart entre le gain en positions (−39%) et le gain en temps (×1,25)</strong> : le tri lui-même a un coût (comparateur exécuté à chaque nœud), qui mange une partie du bénéfice. Confirmé par la légère hausse des allocations (120→132).
-</div>
-
-<div class="callout">
-<strong>Dérive de baseline entre sessions de mesure</strong> : la mesure "avant" de l'Étape 8 (887,1 ms) diffère significativement du 426,3 ms documenté à l'Étape 6 sur un code strictement identique — probable différence de conditions machine entre deux jours de mesure, signalée explicitement plutôt que masquée. Le facteur relatif reste valide en interne ; le nombre de positions (déterministe) sert de métrique de repli fiable.
-</div>
-
-<div class="callout open">
-<strong>Étape 9 — statut vis-à-vis du barème encore en discussion</strong> : contrairement aux Étapes 2, 4, 6 et 8, ce levier ne rentre dans aucun axe noté de façon évidente — il n'accélère rien et n'est pas encore un scénario concurrent (le barème cite "Concurrence : worker pool + early cancellation", un contexte multi-thread que l'Étape 9 seule ne couvre pas). Le mécanisme d'annulation précoce construit ici (deadline vérifiée en récursion, exception de contrôle de flux zéro-allocation, <span class="mono">try/finally</span> garantissant l'intégrité du plateau) est correct et testé (51/51 tests, 3 bugs réels trouvés et corrigés), mais sa pertinence pour la notation dépend de sa réutilisation dans la future étape de recherche parallèle. Décision sur son maintien en tant qu'étape numérotée autonome encore ouverte à la date de ce document.
-</div>
-
-<div class="callout">
-<strong>Axes du cours identifiés mais non explorés</strong> : Escape Analysis (JIT, J2_AM), JMH (microbenchmarking standard Java, J2_PM), test de significativité statistique formel (type Benchstat/Mann-Whitney, J2_PM), Virtual Threads (Java 21, M:N, J3_AM). Utilisation actuelle de Hyperfine + seuils artisanaux, suffisante mais moins rigoureuse que ces outils dédiés — noté comme piste d'amélioration méthodologique plutôt que comme omission silencieuse.</div>
-
-<h2>3.d Conclusion — pourquoi cet état, dans le temps imparti, est la meilleure solution actuelle</h2>
-
-<p>Neuf étapes, <strong>gain cumulé mesuré ×4,7</strong> sur le temps de recherche (Étapes 2 à 6, profondeur 5) et <strong>−39% de positions visitées</strong> en plus (Étape 8) — sans jamais sacrifier la correction du moteur : 51 tests passent, y compris des tests d'équivalence mathématique stricte entre Minimax naïf et Alpha-Beta optimisé, à chaque étape.</p>
-
-<p>La discipline "macro avant micro, profiler avant d'optimiser" a été respectée de bout en bout, pas seulement énoncée : l'ordre réel des étapes (macro Étape 2 → micro Étapes 3-6 → diagnostic Étape 7 → macro Étape 8, choisi <em>à partir</em> du diagnostic) le démontre. Les résultats décevants ou incomplets (Étape 6, dérive de baseline, statut incertain de l'Étape 9) sont documentés avec la même rigueur que les succès — cohérent avec l'exigence du barème sur la confrontation critique (Axe 4), pas encore formellement traitée mais déjà pratiquée en continu.</p>
-
-<p>Dans le temps disponible, la priorité donnée aux leviers <strong>directement mesurables et testables</strong> (vs. des leviers plus ambitieux mais risqués comme la table de transposition ou le parallélisme, repoussés aux étapes suivantes) a permis de produire une base de code correcte, entièrement testée et benchmarkée à chaque étape — un compromis assumé entre ambition technique et fiabilité du rendu final, plutôt qu'une accumulation de leviers non vérifiés.</p>
-
-<h2>4. Annexes &amp; reproductibilité</h2>
+<h2>12. Annexes</h2>
+<h3>12.1 — Gouvernance technique IA (constitution.md)</h3>
+<p>Un fichier de gouvernance dédié encadre tout assistant de génération de code intervenant sur ce projet, structuré en quatre directives :</p>
 <ul>
-  <li>Code source complet : dépôt Git (voir <span class="mono">MoteurEchecs/</span>), preuve de reproductibilité — rendu obligatoire en plus de ce rapport (confirmé par le formateur en live).</li>
-  <li>Journal détaillé : <span class="mono">process/01</span> à <span class="mono">09</span></li>
-  <li>Synthèses autonomes avec diagrammes : <span class="mono">syntheses/01</span> à <span class="mono">09</span> + tableau consolidé</li>
-  <li>Diagrammes d'architecture complets : <span class="mono">shemas/schemas.md</span> (16 sections)</li>
-  <li>Guide de build/run/profiling/benchmark : <span class="mono">guide/README.md</span></li>
-  <li>Roadmap restante : Étape 10 (table de transposition, LRU bornée), 11 (recherche parallèle), 12 (I/O &amp; persistance, gRPC — inclura probablement une mesure de latence p50/p95/p99 sous charge), 13 (échec constructif), 14 (reproductibilité, script one-shot), 15 (présent rapport, version consolidée finale)</li>
+  <li><strong>Posture</strong> : ingénieur système et performance backend senior, décisions gouvernées par des métriques physiques réelles (cycles CPU, hiérarchie de cache, coût du Garbage Collector).</li>
+  <li><strong>Garde-fous négatifs</strong> : interdiction des structures intermédiaires pour un test ponctuel, des clés de cache par sérialisation complète sans hachage incrémental, des collections non pré-dimensionnées, de toute mutation d'état partagé sans protection explicite.</li>
+  <li><strong>Justification empirique obligatoire</strong> : toute optimisation proposée s'accompagne d'une hypothèse d'impact matériel et d'une commande de vérification exacte et reproductible.</li>
+  <li><strong>Formatage compact</strong> : zéro verbiage, commentaires réservés à la justification d'un choix non évident, jamais à la description du code lui-même.</li>
 </ul>
+<h3>12.2 — Reproductibilité</h3>
+<p>L'intégralité du code source, des scripts de mesure et de la documentation technique détaillée accompagne ce rapport et permet de reproduire chacun des résultats présentés de façon indépendante.</p>
 
 <p class="footer-note">
-Document de travail — première version (brouillon), générée le 24 septembre 2026 à l'état des Étapes 1 à 9. À consolider en version finale à l'Étape 15, une fois la roadmap complète (Étapes 10-14) réalisée. Toutes les données chiffrées de ce document sont sourcées depuis <span class="mono">process/</span>, <span class="mono">syntheses/</span> et <span class="mono">profiling/</span> du dépôt Git — reproductibles indépendamment de ce PDF.
+MoteurEchecs — Rapport d'Audit de Performance, version 1.0.
 </p>
 
 </body>

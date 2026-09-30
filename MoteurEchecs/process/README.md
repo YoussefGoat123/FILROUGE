@@ -15,6 +15,7 @@ Même méthodologie que le TP fil rouge HashBreaker (`../../process/`) : un fich
 | 07 | [Profiling réel & Hot Path (Axe 2)](07-profiling-reel-hotpath.md) | ✅ |
 | 08 | [Tri des coups (MVV-LVA, macro)](08-tri-coups-move-ordering.md) | ✅ |
 | 09 | [Recherche à budget de temps (iterative deepening)](09-recherche-budget-temps.md) | ✅ |
+| 10 | [Échec Constructif : cache naïf de roiEnEchec() (Axe 4)](10-echec-constructif-cache-roiEnEchec.md) | ✅ |
 
 ## Voir aussi
 
