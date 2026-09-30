@@ -78,7 +78,7 @@
   <li>Introduction &amp; méthodologie</li>
   <li><strong>Phase 1 — Analyse factuelle</strong> : banc d'essai &amp; protocole · synthèse consolidée des versions · flamegraphs · empreinte mémoire · loi d'Amdahl</li>
   <li><strong>Phase 2 — Explication, compromis &amp; conclusion</strong> : choix techniques · échec constructif détaillé · influences · compromis assumés · conclusion</li>
-  <li>Annexes : gouvernance IA (constitution.md), reproductibilité</li>
+  <li>Annexes : reproductibilité</li>
 </ol>
 </div>
 
@@ -245,7 +245,7 @@
 <h2>9. Influences</h2>
 <ul>
   <li><strong>Fondamentaux du module</strong> — principes de macro/micro-optimisation, loi d'Amdahl, localité mémoire, métrologie et profiling, concurrence et annulation précoce.</li>
-  <li><strong>Barème d'évaluation officiel</strong> (5 axes techniques + gouvernance IA) — a orienté l'ordre des leviers appliqués, notamment la priorité donnée au profiling réel avant les leviers avancés, et la réalisation d'un échec constructif chiffré.</li>
+  <li><strong>Barème d'évaluation officiel</strong> (5 axes techniques) — a orienté l'ordre des leviers appliqués, notamment la priorité donnée au profiling réel avant les leviers avancés, et la réalisation d'un échec constructif chiffré.</li>
 </ul>
 
 <h2>10. Compromis assumés</h2>
@@ -256,19 +256,11 @@
 
 <h2>11. Conclusion</h2>
 <p>Le travail réalisé établit deux résultats de nature distincte, à ne pas additionner l'un à l'autre : un gain de <strong>×4,7</strong> sur le temps de recherche entre la baseline Alpha-Beta et la version pré-allocation (V1→V5), et une réduction indépendante de <strong>39%</strong> du nombre de positions visitées apportée par le tri des coups (V7 vs V5), elle-même mesurée avec un gain en temps propre de ×1,22 — inférieur au gain en positions du fait du coût du tri lui-même. Ces deux résultats caractérisent des leviers différents, à des stades différents du moteur, et sont rapportés séparément par souci d'exactitude. Ce qui reste constant sur l'ensemble du parcours, c'est la correction du moteur : la suite de 51 tests reste intégralement verte à chaque étape, y compris des tests d'équivalence mathématique stricte entre l'algorithme naïf et sa version optimisée. La discipline "réduire la complexité avant d'accélérer, mesurer avant d'affirmer" a été appliquée dans l'ordre réel des décisions prises, pas seulement énoncée a posteriori. Les résultats modestes, les écarts entre métriques, et la tentative volontairement ratée sont documentés avec la même rigueur que les succès.</p>
-<p>La priorité donnée aux leviers directement mesurables et vérifiables — plutôt qu'une accumulation de leviers ambitieux non prouvés — a produit une base de code entièrement testée et benchmarkée, avec un périmètre couvert précisément délimité : banc d'essai matériel, profiling réel, optimisation mémoire, confrontation critique chiffrée, et gouvernance d'ingénierie formalisée. La concurrence multi-cœurs et la persistance/exposition en service restent hors périmètre de cette version — le mécanisme d'annulation précoce de V8 constitue une base directement réutilisable pour la première, non encore mise en œuvre. C'est ce compromis — rigueur vérifiée sur un périmètre assumé plutôt qu'ambition non prouvée sur un périmètre plus large — qui constitue la meilleure solution atteignable dans ce cadre.</p>
+<p>La priorité donnée aux leviers directement mesurables et vérifiables — plutôt qu'une accumulation de leviers ambitieux non prouvés — a produit une base de code entièrement testée et benchmarkée, avec un périmètre couvert précisément délimité : banc d'essai matériel, profiling réel, optimisation mémoire, confrontation critique chiffrée, et reproductibilité automatisée. La concurrence multi-cœurs et la persistance/exposition en service restent hors périmètre de cette version — le mécanisme d'annulation précoce de V8 constitue une base directement réutilisable pour la première, non encore mise en œuvre. C'est ce compromis — rigueur vérifiée sur un périmètre assumé plutôt qu'ambition non prouvée sur un périmètre plus large — qui constitue la meilleure solution atteignable dans ce cadre.</p>
 
 <h2>12. Annexes</h2>
-<h3>12.1 — Gouvernance technique IA (constitution.md)</h3>
-<p>Un fichier de gouvernance dédié encadre tout assistant de génération de code intervenant sur ce projet, structuré en quatre directives :</p>
-<ul>
-  <li><strong>Posture</strong> : ingénieur système et performance backend senior, décisions gouvernées par des métriques physiques réelles (cycles CPU, hiérarchie de cache, coût du Garbage Collector).</li>
-  <li><strong>Garde-fous négatifs</strong> : interdiction des structures intermédiaires pour un test ponctuel, des clés de cache par sérialisation complète sans hachage incrémental, des collections non pré-dimensionnées, de toute mutation d'état partagé sans protection explicite.</li>
-  <li><strong>Justification empirique obligatoire</strong> : toute optimisation proposée s'accompagne d'une hypothèse d'impact matériel et d'une commande de vérification exacte et reproductible.</li>
-  <li><strong>Formatage compact</strong> : zéro verbiage, commentaires réservés à la justification d'un choix non évident, jamais à la description du code lui-même.</li>
-</ul>
-<h3>12.2 — Reproductibilité</h3>
-<p>L'intégralité du code source, des scripts de mesure et de la documentation technique détaillée accompagne ce rapport et permet de reproduire chacun des résultats présentés de façon indépendante.</p>
+<h3>12.1 — Reproductibilité</h3>
+<p>L'intégralité du code source, des scripts de mesure et de la documentation technique détaillée accompagne ce rapport. Un script unique exécute en une seule commande la compilation, la suite de tests complète, puis l'ensemble des diagnostics de performance cités dans ce document (baseline, comparaison mémoire, recherche optimisée, recherche à budget de temps), avec arrêt immédiat et message explicite en cas d'échec.</p>
 
 <p class="footer-note">
 MoteurEchecs — Rapport d'Audit de Performance, version 1.0.

@@ -84,16 +84,26 @@ call "C:\chemin\complet\avec\espaces\MoteurEchecs\scripts\run-diagnostic-allocat
 
 Puis pointer Hyperfine vers ce lanceur plutôt que directement vers `scripts\run-diagnostic-allocations.cmd`.
 
+### Reproductibilité en une commande
+
+```
+scripts\run-benchmarks-complet.cmd
+```
+
+Compile, lance les 51 tests, puis rejoue dans l'ordre la baseline naïve, la comparaison bitboards, la recherche optimisée (Alpha-Beta + zéro-allocation + pré-allocation + tri des coups) et la recherche à budget de temps — sans étape manuelle. S'arrête immédiatement avec un message clair si la compilation ou un test échoue.
+
 ### Scripts disponibles dans `scripts/`
 
 | Script | Lance |
 |---|---|
+| `run-benchmarks-complet.cmd` | **Suite complète en une commande** (build + tests + tous les diagnostics ci-dessous) |
 | `run-main.cmd` | `Main.java` (comparaison naïf vs Alpha-Beta, affichage console — **pas pour Hyperfine**, inclut le naïf profondeur 4 ~8,8 s) |
 | `run-diagnostic-allocations.cmd` | `DiagnosticAllocations` (Alpha-Beta seul, profondeur 5 — pour profiling/Hyperfine) |
 | `run-diagnostic-profiling-reel.cmd` | `DiagnosticProfilingReel` (Alpha-Beta seul, profondeur 6 — pour profiling CPU/Flamegraph) |
+| `run-diagnostic-budget-temps.cmd` | `DiagnosticBudgetTemps` (profondeur atteinte selon 5 budgets de temps) |
 | `run-etape-localite-memoire.cmd` | `EtapeLocaliteMemoire` (comparaison objets vs bitboards) |
 
-Tous supposent `JAVA_HOME` défini et `target/classes` déjà compilé (`mvn -q compile` d'abord).
+Tous supposent `JAVA_HOME` défini et `mvn` sur le PATH. `run-benchmarks-complet.cmd` compile lui-même ; les autres supposent `target/classes` déjà compilé (`mvn -q compile` d'abord).
 
 ## Où trouver quoi
 
